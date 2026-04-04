@@ -88,6 +88,10 @@
 		if (container.dataset.ready === 'true') return;
 		container.dataset.ready = 'true';
 		const frame = container.closest('.hero-particles-frame') || container;
+		const hero = frame.closest('.hero') || document;
+		const headline = hero.querySelector('.hero__headline');
+		const title = hero.querySelector('.hero__name');
+		const titleArrow = hero.querySelector('.hero__name-arrow');
 
 		const scene = new THREE.Scene();
 		const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 140);
@@ -102,7 +106,7 @@
 
 		const sprite = makeSprite();
 		const material = new THREE.PointsMaterial({
-			color: 0x47df9b,
+			color: 0xedfff7,
 			size: 0.2,
 			transparent: true,
 			opacity: 1,
@@ -114,7 +118,7 @@
 		material.toneMapped = false;
 
 		const bloomMaterial = new THREE.PointsMaterial({
-			color: 0x8dffd1,
+			color: 0xf2fff9,
 			size: 0.34,
 			transparent: true,
 			opacity: 0.12,
@@ -126,7 +130,7 @@
 		bloomMaterial.toneMapped = false;
 
 		const emissiveMaterial = new THREE.PointsMaterial({
-			color: 0xeafff6,
+			color: 0xffffff,
 			size: 0.56,
 			transparent: true,
 			opacity: 0.08,
@@ -138,13 +142,14 @@
 		emissiveMaterial.toneMapped = false;
 
 		const isMobile = window.innerWidth < 768;
-		const count = isMobile ? 2200 : 3600;
+		const count = isMobile ? 1200 : 2000;
 		const positions = new Float32Array(count * 3);
 		const colors = new Float32Array(count * 3);
 		const radial = new Float32Array(count);
 		const angles = new Float32Array(count);
 		const depths = new Float32Array(count);
 		const offsets = new Float32Array(count);
+		const colorVariants = new Float32Array(count);
 
 		const tunnelDepth = isMobile ? 62 : 78;
 		const zStart = -tunnelDepth;
@@ -194,6 +199,7 @@
 			angles[i] = angle;
 			depths[i] = depth;
 			offsets[i] = Math.random() * Math.PI * 2;
+			colorVariants[i] = Math.random();
 
 			const dataIndex = i * 3;
 			positions[dataIndex] = Math.cos(angle) * radius;
@@ -226,8 +232,64 @@
 
 		const pointer = { x: 0, y: 0 };
 		const pointerTarget = { x: 0, y: 0 };
+		const vortexAnchor = { x: 0, y: 0 };
+		const vortexAnchorTarget = { x: 0, y: 0 };
+		const vortexAnchorOffsetX = 0;
+		const vortexFieldShiftX = isMobile ? 0.9 : 1.7;
+		const vortexMaskShiftPercentX = isMobile ? 5 : 7;
 		let isPointerInside = false;
 		let hoverBlend = 0;
+
+		const updateVortexAnchorTarget = () => {
+			if (!headline || !title || !titleArrow) {
+				vortexAnchorTarget.x = 0;
+				vortexAnchorTarget.y = 0;
+				return;
+			}
+
+			const frameRect = frame.getBoundingClientRect();
+			const headlineRect = headline.getBoundingClientRect();
+			if (!frameRect.width || !frameRect.height || !headlineRect.width || !headlineRect.height) {
+				vortexAnchorTarget.x = 0;
+				vortexAnchorTarget.y = 0;
+				return;
+			}
+
+			const arrowCenterX =
+				headlineRect.left + title.offsetLeft + titleArrow.offsetLeft + titleArrow.offsetWidth / 2;
+			const arrowCenterY =
+				headlineRect.top + title.offsetTop + titleArrow.offsetTop + titleArrow.offsetHeight / 2;
+			const arrowPercentX = ((arrowCenterX - frameRect.left) / frameRect.width) * 100;
+			const arrowPercentY = ((arrowCenterY - frameRect.top) / frameRect.height) * 100;
+			const ndcX = ((arrowCenterX - frameRect.left) / frameRect.width) * 2 - 1;
+			const ndcY = -(((arrowCenterY - frameRect.top) / frameRect.height) * 2 - 1);
+			const rayPoint = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
+			const rayDirection = rayPoint.sub(camera.position).normalize();
+			const planeZ = 0;
+			const distance = (planeZ - camera.position.z) / rayDirection.z;
+
+			if (!Number.isFinite(distance)) {
+				vortexAnchorTarget.x = 0;
+				vortexAnchorTarget.y = 0;
+				return;
+			}
+
+			const shiftedPercentX = THREE.MathUtils.clamp(
+				arrowPercentX + vortexMaskShiftPercentX,
+				0,
+				100,
+			);
+			const xValue = `${shiftedPercentX.toFixed(3)}%`;
+			const yValue = `${arrowPercentY.toFixed(3)}%`;
+			hero.style.setProperty('--vortex-center-x', xValue);
+			hero.style.setProperty('--vortex-center-y', yValue);
+			frame.style.setProperty('--vortex-center-x', xValue);
+			frame.style.setProperty('--vortex-center-y', yValue);
+
+			const intersection = camera.position.clone().add(rayDirection.multiplyScalar(distance));
+			vortexAnchorTarget.x = intersection.x + vortexAnchorOffsetX + vortexFieldShiftX;
+			vortexAnchorTarget.y = intersection.y;
+		};
 
 		const updatePointerFromEvent = (event) => {
 			const rect = frame.getBoundingClientRect();
@@ -258,11 +320,14 @@
 			renderer.setSize(clientWidth, clientHeight, false);
 			camera.aspect = clientWidth / clientHeight;
 			camera.updateProjectionMatrix();
+			updateVortexAnchorTarget();
 		};
 
 		const resizeObserver = new ResizeObserver(resize);
 		resizeObserver.observe(container);
+		if (headline) resizeObserver.observe(headline);
 		resize();
+		document.fonts?.ready?.then(updateVortexAnchorTarget).catch(() => {});
 
 		let frameId = 0;
 		const animate = (time) => {
@@ -272,14 +337,17 @@
 				const data = geometry.attributes.position.array;
 				const particleColors = geometry.attributes.color.array;
 				const waveTime = time * 0.001;
-				const speed = isMobile ? 0.05 : 0.08;
+				const speed = isMobile ? 0.038 : 0.062;
 				const pointerEase = isPointerInside ? 0.11 : 0.05;
 				const hoverEase = isPointerInside ? 0.08 : 0.06;
+				const anchorEase = isMobile ? 0.12 : 0.1;
 
 				hoverBlend += ((isPointerInside ? 1 : 0) - hoverBlend) * hoverEase;
 
 				pointer.x += (pointerTarget.x - pointer.x) * pointerEase;
 				pointer.y += (pointerTarget.y - pointer.y) * pointerEase;
+				vortexAnchor.x += (vortexAnchorTarget.x - vortexAnchor.x) * anchorEase;
+				vortexAnchor.y += (vortexAnchorTarget.y - vortexAnchor.y) * anchorEase;
 
 				for (let i = 0; i < count; i += 1) {
 					const dataIndex = i * 3;
@@ -305,15 +373,36 @@
 
 					data[dataIndex] =
 						Math.cos(swirl) * radiusPulse * inwardPull +
-						influenceX * (2.4 * depthProgress);
+						influenceX * (2.4 * depthProgress) +
+						vortexAnchor.x;
 					data[dataIndex + 1] =
 						Math.sin(swirl) * radiusPulse * 0.62 * inwardPull +
-						influenceY * (1.3 * depthProgress);
+						influenceY * (1.3 * depthProgress) +
+						vortexAnchor.y;
 					data[dataIndex + 2] = depth;
 
-					particleColors[dataIndex] = Math.min(1, 0.018 + glow * 0.26 + nearFocus * 0.24 - farMist * 0.012);
-					particleColors[dataIndex + 1] = Math.min(1, 0.11 + glow * 0.74 + nearFocus * 0.14 - farMist * 0.03);
-					particleColors[dataIndex + 2] = Math.min(1, 0.08 + glow * 0.34 + nearFocus * 0.26 - farMist * 0.018);
+					let red = 0.082 + glow * 0.4 + nearFocus * 0.3 - farMist * 0.008;
+					let green = 0.136 + glow * 0.56 + nearFocus * 0.16 - farMist * 0.02;
+					let blue = 0.132 + glow * 0.46 + nearFocus * 0.34 - farMist * 0.012;
+					const colorVariant = colorVariants[i];
+
+					if (colorVariant < 0.18) {
+						red *= 0.94;
+						green *= 0.98;
+						blue *= 1.38;
+					} else if (colorVariant > 0.76) {
+						red *= 0.84;
+						green *= 1.24;
+						blue *= 0.74;
+					} else if (colorVariant > 0.34 && colorVariant < 0.58) {
+						red *= 1.95;
+						green *= 1.52;
+						blue *= 1.82;
+					}
+
+					particleColors[dataIndex] = Math.min(1, red);
+					particleColors[dataIndex + 1] = Math.min(1, green);
+					particleColors[dataIndex + 2] = Math.min(1, blue);
 				}
 
 				geometry.attributes.position.needsUpdate = true;
@@ -326,6 +415,22 @@
 				const lookRangeX = isMobile ? 6.4 : 9.5;
 				const lookRangeY = isMobile ? 3.1 : 4.9;
 				const targetCameraZ = 18 - pointerDepth * 0.4;
+
+				if (title) {
+					const titleShiftX = livePointerX * (isMobile ? 1.8 : 2.6) + Math.sin(waveTime * 0.92) * 0.55;
+					const titleShiftY = -livePointerY * (isMobile ? 1.1 : 1.6) + Math.cos(waveTime * 0.76) * 0.35;
+					const titleTilt = livePointerX * (isMobile ? 0.45 : 0.7) + Math.sin(waveTime * 0.54) * 0.18;
+					const titleGlow = THREE.MathUtils.clamp(
+						0.18 + pointerDepth * 0.32 + (Math.sin(waveTime * 1.08) + 1) * 0.08,
+						0,
+						0.75,
+					);
+
+					title.style.setProperty('--title-shift-x', titleShiftX.toFixed(3));
+					title.style.setProperty('--title-shift-y', titleShiftY.toFixed(3));
+					title.style.setProperty('--title-tilt', titleTilt.toFixed(3));
+					title.style.setProperty('--title-glow', titleGlow.toFixed(3));
+				}
 
 				camera.position.x += (livePointerX * cameraRangeX - camera.position.x) * 0.028;
 				camera.position.y += (-livePointerY * cameraRangeY - camera.position.y) * 0.028;
@@ -351,6 +456,14 @@
 			} else {
 				pointer.x += (0 - pointer.x) * 0.05;
 				pointer.y += (0 - pointer.y) * 0.05;
+				vortexAnchor.x += (vortexAnchorTarget.x - vortexAnchor.x) * 0.08;
+				vortexAnchor.y += (vortexAnchorTarget.y - vortexAnchor.y) * 0.08;
+				if (title) {
+					title.style.setProperty('--title-shift-x', '0');
+					title.style.setProperty('--title-shift-y', '0');
+					title.style.setProperty('--title-tilt', '0');
+					title.style.setProperty('--title-glow', '0');
+				}
 				camera.position.x += (0 - camera.position.x) * 0.02;
 				camera.position.y += (0 - camera.position.y) * 0.02;
 				camera.position.z += (18 - camera.position.z) * 0.02;
@@ -371,6 +484,16 @@
 			frame.removeEventListener('pointermove', onPointerMove);
 			frame.removeEventListener('pointerleave', onPointerLeave);
 			frame.removeEventListener('pointercancel', onPointerCancel);
+			if (title) {
+				title.style.removeProperty('--title-shift-x');
+				title.style.removeProperty('--title-shift-y');
+				title.style.removeProperty('--title-tilt');
+				title.style.removeProperty('--title-glow');
+			}
+			hero.style.removeProperty('--vortex-center-x');
+			hero.style.removeProperty('--vortex-center-y');
+			frame.style.removeProperty('--vortex-center-x');
+			frame.style.removeProperty('--vortex-center-y');
 			geometry.dispose();
 			material.dispose();
 			bloomMaterial.dispose();
@@ -388,7 +511,7 @@
 <style>
 	.hero-particles-frame {
 		position: relative;
-		width: min(94vw, 1400px);
+		width: 100%;
 		height: min(78vh, 900px);
 		margin-inline: auto;
 		border-radius: 0;
@@ -403,8 +526,8 @@
 		inset: -10%;
 		pointer-events: none;
 		cursor: inherit;
-		-webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0 18%, rgba(0, 0, 0, 0.96) 34%, rgba(0, 0, 0, 0.6) 54%, transparent 82%);
-		mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 0 18%, rgba(0, 0, 0, 0.96) 34%, rgba(0, 0, 0, 0.6) 54%, transparent 82%);
+		-webkit-mask-image: radial-gradient(circle at var(--vortex-center-x, 50%) var(--vortex-center-y, 50%), rgba(0, 0, 0, 1) 0 18%, rgba(0, 0, 0, 0.96) 34%, rgba(0, 0, 0, 0.6) 54%, transparent 82%);
+		mask-image: radial-gradient(circle at var(--vortex-center-x, 50%) var(--vortex-center-y, 50%), rgba(0, 0, 0, 1) 0 18%, rgba(0, 0, 0, 0.96) 34%, rgba(0, 0, 0, 0.6) 54%, transparent 82%);
 	}
 
 	.hero-particles-canvas :global(canvas) {

@@ -35,11 +35,11 @@ To achieve the "Vexel" inspired aesthetic (Ref: Image 2):
 ---
 
 ## 3. Typography
-The system uses a calculated tension between a clean sans-serif (**Inter**) and a tech-forward display font (**Bebas Neue**).
+The system uses a clear hierarchy between a clean sans-serif (**Inter**) and a tech-forward display font (**Bebas Neue**).
 
-*   **Display (Bebas Neue):** Ultra-large (`3.5rem`+). This is the "Architect" voice. Headlines should use confident spacing and, where appropriate, intentional overlapping with 3D elements to create depth.
+*   **Display (Bebas Neue):** Reserved for titles and headlines. This is the "Architect" voice. Use it on high-impact headings only, with `letter-spacing: 0` to preserve its natural shape and weight.
 *   **Body (Inter):** The "Developer" voice. Clean, readable, and functional. Maintain generous line height (`1.6`) to balance the aggressive display typography.
-*   **Labels (Bebas Neue):** Used for metadata (e.g., "// PROJECT 01"). This evokes a "coding terminal" aesthetic.
+*   **Labels & UI (Inter):** Navigation, metadata, chips, buttons, and form labels should all use Inter for consistency and better readability in smaller sizes.
 
 Hierarchy conveys identity: Big, bold headers represent creative vision, while small, precise mono-style labels represent technical execution.
 
@@ -68,7 +68,7 @@ Elevation is expressed through light and tonal layering, not shadows.
 *   **Interactive Cards:** On hover, a card should scale slightly (1.02x) and transition from `surface-container` to a glassmorphic state with a `primary` ghost border.
 
 ### Input Fields
-*   **Style:** Underline only or minimal glass container. Labels should use the `label-sm` (Bebas Neue) to mimic terminal inputs.
+*   **Style:** Underline only or minimal glass container. Labels should use the `label-sm` treatment in Inter to keep forms aligned with the rest of the UI.
 *   **Focus State:** The underline should transform into a `primary` glow.
 
 ### Additional Signature Components
