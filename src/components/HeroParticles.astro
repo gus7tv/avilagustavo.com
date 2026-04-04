@@ -28,6 +28,62 @@
 		return new THREE.CanvasTexture(canvas);
 	}
 
+	function addDepthStyling(material, settings) {
+		material.onBeforeCompile = (shader) => {
+			shader.uniforms.uDepthStart = { value: settings.depthStart };
+			shader.uniforms.uDepthEnd = { value: settings.depthEnd };
+			shader.uniforms.uFarBlur = { value: settings.farBlur };
+			shader.uniforms.uNearScale = { value: settings.nearScale };
+			shader.uniforms.uFarFade = { value: settings.farFade };
+			shader.uniforms.uFarDim = { value: settings.farDim };
+			shader.uniforms.uNearAlpha = { value: settings.nearAlpha };
+			shader.uniforms.uNearGlow = { value: settings.nearGlow };
+
+			shader.vertexShader = shader.vertexShader
+				.replace(
+					'#include <common>',
+					`#include <common>
+					varying float vDepthProgress;
+					varying float vNearFocus;
+					varying float vFarHaze;
+					uniform float uDepthStart;
+					uniform float uDepthEnd;
+					uniform float uFarBlur;
+					uniform float uNearScale;`,
+				)
+				.replace(
+					'gl_PointSize = size;',
+					`vDepthProgress = clamp((position.z - uDepthStart) / (uDepthEnd - uDepthStart), 0.0, 1.0);
+					vNearFocus = smoothstep(0.62, 1.0, vDepthProgress);
+					vFarHaze = 1.0 - smoothstep(0.18, 0.58, vDepthProgress);
+					gl_PointSize = size * (1.0 + vFarHaze * uFarBlur + vNearFocus * uNearScale);`,
+				);
+
+			shader.fragmentShader = shader.fragmentShader
+				.replace(
+					'#include <common>',
+					`#include <common>
+					varying float vDepthProgress;
+					varying float vNearFocus;
+					varying float vFarHaze;
+					uniform float uFarFade;
+					uniform float uFarDim;
+					uniform float uNearAlpha;
+					uniform float uNearGlow;`,
+				)
+				.replace(
+					'#include <color_fragment>',
+					`#include <color_fragment>
+					diffuseColor.rgb *= 1.0 - uFarDim * vFarHaze;
+					diffuseColor.rgb *= 1.0 + uNearGlow * vNearFocus;
+					diffuseColor.a *= clamp(1.0 - uFarFade * vFarHaze + uNearAlpha * vNearFocus, 0.12, 2.4);`,
+				);
+		};
+
+		material.customProgramCacheKey = () => JSON.stringify(settings);
+		material.needsUpdate = true;
+	}
+
 	function mountHeroField(container) {
 		if (container.dataset.ready === 'true') return;
 		container.dataset.ready = 'true';
@@ -51,6 +107,7 @@
 			transparent: true,
 			opacity: 1,
 			map: sprite,
+			vertexColors: true,
 			blending: THREE.AdditiveBlending,
 			depthWrite: false,
 		});
@@ -62,6 +119,7 @@
 			transparent: true,
 			opacity: 0.12,
 			map: sprite,
+			vertexColors: true,
 			blending: THREE.AdditiveBlending,
 			depthWrite: false,
 		});
@@ -73,6 +131,7 @@
 			transparent: true,
 			opacity: 0.08,
 			map: sprite,
+			vertexColors: true,
 			blending: THREE.AdditiveBlending,
 			depthWrite: false,
 		});
@@ -81,6 +140,7 @@
 		const isMobile = window.innerWidth < 768;
 		const count = isMobile ? 2200 : 3600;
 		const positions = new Float32Array(count * 3);
+		const colors = new Float32Array(count * 3);
 		const radial = new Float32Array(count);
 		const angles = new Float32Array(count);
 		const depths = new Float32Array(count);
@@ -89,6 +149,37 @@
 		const tunnelDepth = isMobile ? 62 : 78;
 		const zStart = -tunnelDepth;
 		const zEnd = 18;
+
+		addDepthStyling(material, {
+			depthStart: zStart,
+			depthEnd: zEnd,
+			farBlur: 0.08,
+			nearScale: 0.04,
+			farFade: 0.28,
+			farDim: 0.32,
+			nearAlpha: 0.12,
+			nearGlow: 0.18,
+		});
+		addDepthStyling(bloomMaterial, {
+			depthStart: zStart,
+			depthEnd: zEnd,
+			farBlur: 0.68,
+			nearScale: 0.12,
+			farFade: 0.18,
+			farDim: 0.14,
+			nearAlpha: 0.24,
+			nearGlow: 0.3,
+		});
+		addDepthStyling(emissiveMaterial, {
+			depthStart: zStart,
+			depthEnd: zEnd,
+			farBlur: 1.02,
+			nearScale: 0.22,
+			farFade: 0.28,
+			farDim: 0.18,
+			nearAlpha: 0.48,
+			nearGlow: 0.56,
+		});
 
 		for (let i = 0; i < count; i += 1) {
 			const ringBias = Math.pow(Math.random(), 1.18);
@@ -108,10 +199,14 @@
 			positions[dataIndex] = Math.cos(angle) * radius;
 			positions[dataIndex + 1] = Math.sin(angle) * radius * 0.68;
 			positions[dataIndex + 2] = depth;
+			colors[dataIndex] = 0.04;
+			colors[dataIndex + 1] = 0.14;
+			colors[dataIndex + 2] = 0.1;
 		}
 
 		const geometry = new THREE.BufferGeometry();
 		geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
 		const points = new THREE.Points(geometry, material);
 		const bloomPoints = new THREE.Points(geometry, bloomMaterial);
@@ -175,6 +270,7 @@
 
 			if (!prefersReducedMotion) {
 				const data = geometry.attributes.position.array;
+				const particleColors = geometry.attributes.color.array;
 				const waveTime = time * 0.001;
 				const speed = isMobile ? 0.05 : 0.08;
 				const pointerEase = isPointerInside ? 0.11 : 0.05;
@@ -202,6 +298,10 @@
 					const inwardPull = 1 - depthProgress * 0.18;
 					const influenceX = pointer.x * hoverBlend;
 					const influenceY = pointer.y * hoverBlend;
+					const nearFocus = Math.pow(depthProgress, 3.4);
+					const farMist = Math.pow(1 - depthProgress, 1.85);
+					const nearCameraBoost = nearFocus * 0.58;
+					const glow = 0.08 + Math.pow(depthProgress, 2.35) * 1.42 + nearCameraBoost;
 
 					data[dataIndex] =
 						Math.cos(swirl) * radiusPulse * inwardPull +
@@ -210,9 +310,14 @@
 						Math.sin(swirl) * radiusPulse * 0.62 * inwardPull +
 						influenceY * (1.3 * depthProgress);
 					data[dataIndex + 2] = depth;
+
+					particleColors[dataIndex] = Math.min(1, 0.018 + glow * 0.26 + nearFocus * 0.24 - farMist * 0.012);
+					particleColors[dataIndex + 1] = Math.min(1, 0.11 + glow * 0.74 + nearFocus * 0.14 - farMist * 0.03);
+					particleColors[dataIndex + 2] = Math.min(1, 0.08 + glow * 0.34 + nearFocus * 0.26 - farMist * 0.018);
 				}
 
 				geometry.attributes.position.needsUpdate = true;
+				geometry.attributes.color.needsUpdate = true;
 				const livePointerX = pointer.x * hoverBlend;
 				const livePointerY = pointer.y * hoverBlend;
 				const pointerDepth = Math.min(1, Math.hypot(livePointerX, livePointerY));
