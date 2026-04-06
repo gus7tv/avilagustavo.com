@@ -1,6 +1,6 @@
 ---
 import BaseHead from "../components/BaseHead.astro";
-import HeroParticles from "../components/HeroParticles.astro";
+import ScrollSpace3D from "../components/ScrollSpace3D.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import { getCollection } from "astro:content";
 import { ArrowRight, X } from "lucide";
@@ -151,77 +151,82 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 				</header>
 
 				<main>
-					<section id="inicio" class="hero">
-						<div class="hero__topline">
-							<div class="hero__descriptor">
-								<p>Creative Developer & UX Engineer</p>
-								<p>AI Oriented · Building the 3D Web</p>
-							</div>
-						</div>
+					<section id="inicio" class="z-space" data-z-space data-active-panel="hero">
+						<span id="proyectos" class="z-space__anchor z-space__anchor--projects" aria-hidden="true"></span>
+						<div class="z-space__viewport">
+							<ScrollSpace3D />
 
-						<div class="hero__visual hero__visual--minimal">
-							<HeroParticles />
-						</div>
-
-						<div class="hero__headline">
-							<h1 class="hero__name" aria-label="Design to development">
-								<span>Design</span>
-								<svg
-									class="hero__name-arrow"
-									aria-hidden="true"
-									viewBox="0 0 24 24"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									{
-										heroArrowPaths.map((attrs) => (
-											<path d={attrs.d} />
-										))
-									}
-								</svg>
-								<span>Dev</span>
-							</h1>
-						</div>
-
-						<div class="hero__footer">
-							<p class="hero__caption">
-								Cerrando la brecha entre<br />
-								diseño y desarrollo
-							</p>
-							<p class="hero__caption hero__caption--end">Based in Bogotá, Co</p>
-						</div>
-					</section>
-
-					<section id="proyectos" class="section-block">
-						<div class="section-heading">
-							<div>
-								<h2>PROYECTOS SELECCIONADOS</h2>
-								<p>[ LANDINGS, WEBAPPS, UX/UI, FRONTEND ]</p>
-							</div>
-							<span>SCROLL TO DISCOVER 01-04</span>
-						</div>
-
-						<div class="projects-grid">
-							{projects.map((project, index) => (
-								<a
-									class="project-card"
-									href={project.data.url}
-									target="_blank"
-									rel="noreferrer"
-								>
-									<img
-										src={project.data.heroImage}
-										alt={project.data.title}
-										loading="lazy"
-									/>
-									<div class="project-card__overlay"></div>
-									<div class="project-card__content">
-										<p>{`PROYECTO 0${index + 1} · ${project.data.category.toUpperCase()}`}</p>
-										<h3>{project.data.title}</h3>
-										<span>{project.data.description}</span>
+							<section class="hero z-panel z-panel--hero" aria-label="Hero">
+								<div class="hero__topline">
+									<div class="hero__descriptor">
+										<p>Creative Developer & UX Engineer</p>
+										<p>AI Oriented · Building the 3D Web</p>
 									</div>
-								</a>
-							))}
+								</div>
+
+								<div class="hero__visual hero__visual--minimal" aria-hidden="true"></div>
+
+								<div class="hero__headline">
+									<h1 class="hero__name" aria-label="Design to development">
+										<span>Design</span>
+										<svg
+											class="hero__name-arrow"
+											aria-hidden="true"
+											viewBox="0 0 24 24"
+											fill="none"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											{
+												heroArrowPaths.map((attrs) => (
+													<path d={attrs.d} />
+												))
+											}
+										</svg>
+										<span>Dev</span>
+									</h1>
+								</div>
+
+								<div class="hero__footer">
+									<p class="hero__caption">
+										Cerrando la brecha entre<br />
+										diseño y desarrollo
+									</p>
+									<p class="hero__caption hero__caption--end">Based in Bogotá, Co</p>
+								</div>
+							</section>
+
+							<section class="section-block z-panel z-panel--projects" aria-labelledby="projects-title">
+								<div class="section-heading">
+									<div>
+										<h2 id="projects-title">PROYECTOS SELECCIONADOS</h2>
+										<p>[ LANDINGS, WEBAPPS, UX/UI, FRONTEND ]</p>
+									</div>
+									<span>SCROLL TO DISCOVER 01-04</span>
+								</div>
+
+								<div class="projects-grid">
+									{projects.map((project, index) => (
+										<a
+											class="project-card"
+											href={project.data.url}
+											target="_blank"
+											rel="noreferrer"
+										>
+											<img
+												src={project.data.heroImage}
+												alt={project.data.title}
+												loading="lazy"
+											/>
+											<div class="project-card__overlay"></div>
+											<div class="project-card__content">
+												<p>{`PROYECTO 0${index + 1} · ${project.data.category.toUpperCase()}`}</p>
+												<h3>{project.data.title}</h3>
+												<span>{project.data.description}</span>
+											</div>
+										</a>
+									))}
+								</div>
+							</section>
 						</div>
 					</section>
 
@@ -355,18 +360,10 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	.kinetic-grid {
 		background-image:
-			radial-gradient(
-				circle at 50% 58%,
-				rgba(0, 0, 0, 0.98) 0 10%,
-				rgba(0, 0, 0, 0.94) 18%,
-				rgba(0, 0, 0, 0.82) 28%,
-				rgba(0, 0, 0, 0.48) 40%,
-				transparent 58%
-			),
 			linear-gradient(rgba(71, 223, 155, 0.04) 1px, transparent 1px),
 			linear-gradient(90deg, rgba(71, 223, 155, 0.04) 1px, transparent 1px);
-		background-size: auto, 72px 72px, 72px 72px;
-		background-position: center center, 0 0, 0 0;
+		background-size: 72px 72px, 72px 72px;
+		background-position: 0 0, 0 0;
 	}
 
 	.home-shell {
@@ -378,43 +375,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.home-main {
 		position: relative;
 		margin-left: 80px;
-	}
-
-	.home-main::before,
-	.home-main::after {
-		content: "";
-		position: absolute;
-		top: 0;
-		height: min(100vh, 960px);
-		width: min(28vw, 340px);
-		pointer-events: none;
-		z-index: 0;
-		filter: blur(56px);
-		opacity: 0.54;
-	}
-
-	.home-main::before {
-		left: -3%;
-		background:
-			radial-gradient(
-				circle at 18% 38%,
-				rgba(168, 174, 183, 0.12) 0,
-				rgba(108, 115, 126, 0.08) 28%,
-				rgba(56, 61, 69, 0.05) 52%,
-				transparent 78%
-			);
-	}
-
-	.home-main::after {
-		right: -3%;
-		background:
-			radial-gradient(
-				circle at 82% 44%,
-				rgba(168, 174, 183, 0.11) 0,
-				rgba(108, 115, 126, 0.075) 30%,
-				rgba(56, 61, 69, 0.045) 54%,
-				transparent 80%
-			);
 	}
 
 	.side-rail {
@@ -601,8 +561,127 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		margin: 0 auto;
 	}
 
+	.z-space {
+		--hero-opacity: 1;
+		--hero-y: 0vh;
+		--hero-z: 0px;
+		--hero-tilt: 0deg;
+		--hero-scale: 1;
+		--hero-headline-scroll-y: 0vh;
+		--projects-opacity: 0;
+		--projects-y: 18vh;
+		--projects-z: -720px;
+		--projects-tilt: -8deg;
+		--projects-scale: 0.82;
+		--projects-reveal: 0%;
+		--projects-reveal-edge: 10%;
+		--projects-reveal-x: 50%;
+		--projects-reveal-y: 44%;
+		position: relative;
+		min-height: 235vh;
+		margin: 0 auto;
+	}
+
+	.z-space__anchor {
+		position: absolute;
+		left: 0;
+		width: 1px;
+		height: 1px;
+		pointer-events: none;
+	}
+
+	.z-space__anchor--projects {
+		top: calc(105vh + 4rem);
+	}
+
+	.z-space__viewport {
+		position: sticky;
+		top: 82px;
+		height: calc(100vh - 82px);
+		min-height: 620px;
+		overflow: hidden;
+		perspective: 1200px;
+		perspective-origin: 50% 50%;
+		isolation: isolate;
+	}
+
+	.z-space__viewport::before,
+	.z-space__viewport::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	.z-space__viewport::before {
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 18%, transparent 78%, rgba(0, 0, 0, 0.72));
+	}
+
+	.z-space__viewport::after {
+		display: none;
+	}
+
+	.z-panel {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		width: min(100%, 1280px);
+		margin: auto;
+		transform-style: preserve-3d;
+		will-change: transform, opacity;
+	}
+
+	.z-panel--hero {
+		opacity: var(--hero-opacity);
+		transform:
+			translate3d(0, var(--hero-y), var(--hero-z))
+			rotateX(var(--hero-tilt))
+			scale(var(--hero-scale));
+	}
+
+	.z-panel.z-panel--projects {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		max-width: 1280px;
+		padding: clamp(1.5rem, 3vw, 2.6rem) 0;
+		opacity: var(--projects-opacity);
+		transform:
+			translate3d(0, var(--projects-y), 0)
+			scale(var(--projects-scale));
+		-webkit-mask-image: radial-gradient(
+			circle at var(--projects-reveal-x) var(--projects-reveal-y),
+			#000 0 var(--projects-reveal),
+			rgba(0, 0, 0, 0.8) calc(var(--projects-reveal) + 4%),
+			transparent var(--projects-reveal-edge)
+		);
+		mask-image: radial-gradient(
+			circle at var(--projects-reveal-x) var(--projects-reveal-y),
+			#000 0 var(--projects-reveal),
+			rgba(0, 0, 0, 0.8) calc(var(--projects-reveal) + 4%),
+			transparent var(--projects-reveal-edge)
+		);
+		-webkit-mask-repeat: no-repeat;
+		mask-repeat: no-repeat;
+		-webkit-mask-size: 100% 100%;
+		mask-size: 100% 100%;
+		contain: paint;
+	}
+
+	.z-space[data-active-panel="hero"] .z-panel--projects,
+	.z-space[data-active-panel="projects"] .z-panel--hero {
+		pointer-events: none;
+	}
+
+	.z-panel--projects .section-heading {
+		margin-bottom: clamp(1rem, 2vh, 1.5rem);
+	}
+
 	.hero {
 		--hero-vortex-offset: 1.1rem;
+		--hero-headline-offset: 3.15rem;
 		width: 100%;
 		position: relative;
 		display: grid;
@@ -611,6 +690,12 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		min-height: calc(100vh - 110px);
 		padding: 1.2rem 0 2rem;
 		overflow: hidden;
+	}
+
+	.z-panel.hero {
+		height: 100%;
+		min-height: 100%;
+		padding: clamp(1rem, 3vh, 2rem) 0 clamp(1.25rem, 4vh, 2.6rem);
 	}
 
 	.hero,
@@ -669,25 +754,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		transform: translateY(var(--hero-vortex-offset));
 	}
 
-	.hero__visual::before {
-		content: "";
-		position: absolute;
-		inset: 1% 1% 5%;
-		background:
-			radial-gradient(
-				circle at var(--vortex-center-x, 50%) var(--vortex-center-y, 58%),
-				rgba(0, 0, 0, 1) 0 19%,
-				rgba(0, 0, 0, 0.99) 30%,
-				rgba(0, 0, 0, 0.96) 42%,
-				rgba(0, 0, 0, 0.82) 58%,
-				rgba(0, 0, 0, 0.46) 74%,
-				transparent 92%
-			);
-		filter: blur(18px);
-		pointer-events: none;
-		z-index: 0;
-	}
-
 	.hero__visual > * {
 		position: relative;
 		z-index: 1;
@@ -705,7 +771,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		align-items: center;
 		justify-content: center;
 		pointer-events: none;
-		transform: translateY(var(--hero-vortex-offset));
+		transform: translateY(calc(var(--hero-headline-offset) + var(--hero-headline-scroll-y)));
 	}
 
 	.hero__footer {
@@ -946,6 +1012,13 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		text-decoration: none;
 	}
 
+	.z-panel--projects .project-card {
+		min-height: clamp(12rem, 24vh, 18rem);
+		transition:
+			transform 240ms ease,
+			opacity 240ms ease;
+	}
+
 	.project-card img,
 	.project-card__overlay {
 		position: absolute;
@@ -1170,8 +1243,27 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	@media (max-width: 960px) {
+		.z-space {
+			min-height: 225vh;
+		}
+
+		.z-space__viewport {
+			top: 74px;
+			height: calc(100vh - 74px);
+			min-height: 620px;
+		}
+
+		.z-panel.z-panel--projects {
+			padding: 1rem 0;
+		}
+
+		.z-panel--projects .project-card {
+			min-height: clamp(9rem, 18vh, 13rem);
+		}
+
 		.hero {
 			--hero-vortex-offset: 0.65rem;
+			--hero-headline-offset: 2.45rem;
 		}
 
 		.topbar {
@@ -1198,6 +1290,13 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 			overflow: visible;
 		}
 
+		.z-panel.hero {
+			height: 100%;
+			min-height: 100%;
+			padding-top: 1.2rem;
+			overflow: hidden;
+		}
+
 		.projects-grid {
 			grid-template-columns: 1fr;
 		}
@@ -1207,6 +1306,12 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 			inset: auto;
 			min-height: 25rem;
 			pointer-events: none;
+		}
+
+		.z-panel .hero__visual {
+			position: absolute;
+			inset: 3.5rem 0 7.5rem;
+			min-height: 0;
 		}
 
 		.hero__footer {
@@ -1226,6 +1331,43 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	@media (max-width: 720px) {
+		.z-space {
+			min-height: 240vh;
+		}
+
+		.z-space__anchor--projects {
+			top: calc(112vh + 7rem);
+		}
+
+		.z-space__viewport {
+			top: 128px;
+			height: calc(100vh - 128px);
+			min-height: 640px;
+		}
+
+		.z-panel--projects .section-heading {
+			margin-bottom: 0.85rem;
+			padding-bottom: 0.9rem;
+		}
+
+		.z-panel--projects .section-heading span {
+			display: none;
+		}
+
+		.z-panel--projects .project-card {
+			min-height: 8.6rem;
+		}
+
+		.z-panel--projects .project-card__content {
+			right: 1rem;
+			bottom: 0.95rem;
+			left: 1rem;
+		}
+
+		.z-panel--projects .project-card__content span {
+			display: none;
+		}
+
 		.topbar {
 			flex-direction: column;
 			align-items: flex-start;
