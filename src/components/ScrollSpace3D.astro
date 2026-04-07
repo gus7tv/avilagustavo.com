@@ -2,6 +2,10 @@
 
 <script type="module" is:inline>
 	import * as THREE from 'https://esm.sh/three@0.161.0';
+	import { EffectComposer } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/EffectComposer.js';
+	import { RenderPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/RenderPass.js';
+	import { ShaderPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/ShaderPass.js';
+	import { UnrealBloomPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 	const containers = document.querySelectorAll('[data-scroll-space-scene]');
 	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,38 +28,83 @@
 
 	function makeTuningDefaults(isMobile) {
 		return {
-			vortexX: isMobile ? 3.2 : 6.62,
-			vortexY: isMobile ? 3.8 : 6.56,
+			vortexX: 6.62,
+			vortexY: 6.56,
 			revealX: 50,
 			revealY: 44,
-			headlineBaseRem: isMobile ? 2.45 : 3.15,
+			scrollStart: 0.46,
+			scrollEnd: 0.95,
+			headlineBaseRem: 3.15,
 			headlineScrollVh: 14,
-			particleSize: isMobile ? 0.18 : 0.2,
+			particleSize: 0.15,
 			particleToneMix: 1,
-			vortexOpenStart: 0.22,
-			vortexOpenEnd: 0.72,
-			coreFinal: isMobile ? 8.6 : 12,
-			innerPush: isMobile ? 9.2 : 14,
-			latePush: isMobile ? 5.2 : 8,
-			depthPush: isMobile ? 3.2 : 5,
-			stretchStart: 0.28,
-			stretchPeak: 0.39,
-			streakBaseLength: isMobile ? 0.25 : 0.35,
-			streakMaxLength: isMobile ? 0.92 : 1.34,
-			stretchFadeStart: 0.58,
-			stretchFadeEnd: 0.74,
-			particleFadeStart: 0.73,
-			particleFadeEnd: 0.86,
-			projectRevealStart: 0.48,
-			projectRevealEnd: 0.88,
-			projectRevealMax: 150,
-			projectRevealFeather: 12,
+			vortexOpenStart: 0.12,
+			vortexOpenEnd: 0.45,
+			coreFinal: 11.5,
+			innerPush: 14,
+			latePush: 6.5,
+			depthPush: 0,
+			stretchStart: 0.1,
+			stretchPeak: 0.75,
+			streakBaseLength: 0.04,
+			streakMaxLength: 3,
+			stretchFadeStart: 0.43,
+			stretchFadeEnd: 1,
+			particleFadeStart: 0.62,
+			particleFadeEnd: 0.69,
+			projectRevealStart: 0.49,
+			projectRevealEnd: 0.69,
+			projectRevealMax: 140,
+			projectRevealFeather: 21,
 			heroExitStart: 0.28,
 			heroExitEnd: 0.72,
-			projectsEnterStart: 0.68,
-			projectsEnterEnd: 0.96,
+			projectsEnterStart: 0.6,
+			projectsEnterEnd: 0.85,
+			postprocessingEnabled: true,
+			bloomStrength: 0.97,
+			bloomRadius: 0,
+			bloomThreshold: 0.13,
+			chromaAmount: 0.0004,
+			chromaStart: 0,
+			chromaPeak: 0.1,
+			chromaFadeStart: 0.3,
+			chromaFadeEnd: 0.76,
+			lenisEnabled: true,
+			lenisLerp: 0.09,
+			lenisWheelMultiplier: 0.82,
 		};
 	}
+
+	const ChromaticAberrationShader = {
+		uniforms: {
+			tDiffuse: { value: null },
+			uAmount: { value: 0 },
+		},
+		vertexShader: `
+			varying vec2 vUv;
+
+			void main() {
+				vUv = uv;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			}
+		`,
+		fragmentShader: `
+			uniform sampler2D tDiffuse;
+			uniform float uAmount;
+			varying vec2 vUv;
+
+			void main() {
+				vec2 direction = vUv - vec2(0.5);
+				float distanceFromCenter = length(direction);
+				vec2 offset = direction * uAmount * distanceFromCenter;
+				float red = texture2D(tDiffuse, vUv - offset).r;
+				float green = texture2D(tDiffuse, vUv).g;
+				float blue = texture2D(tDiffuse, vUv + offset).b;
+				float alpha = texture2D(tDiffuse, vUv).a;
+				gl_FragColor = vec4(red, green, blue, alpha);
+			}
+		`,
+	};
 
 	function makeParticleSprite() {
 		const canvas = document.createElement('canvas');
@@ -74,71 +123,6 @@
 		context.fillRect(0, 0, 128, 128);
 
 		return new THREE.CanvasTexture(canvas);
-	}
-
-	function buildPortalRing(radius, z, color, opacity) {
-		const group = new THREE.Group();
-		group.position.z = z;
-
-		const ringGeometry = new THREE.TorusGeometry(radius, 0.012, 8, 160);
-		const ringMaterial = new THREE.MeshBasicMaterial({
-			color,
-			transparent: true,
-			opacity,
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-		});
-		const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-		group.add(ring);
-
-		const haloGeometry = new THREE.TorusGeometry(radius * 1.09, 0.006, 8, 160);
-		const haloMaterial = new THREE.MeshBasicMaterial({
-			color,
-			transparent: true,
-			opacity: opacity * 0.36,
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-		});
-		const halo = new THREE.Mesh(haloGeometry, haloMaterial);
-		group.add(halo);
-
-		return { group, geometries: [ringGeometry, haloGeometry], materials: [ringMaterial, haloMaterial] };
-	}
-
-	function buildProjectFrames() {
-		const group = new THREE.Group();
-		group.position.set(0, -0.15, -48);
-
-		const geometries = [];
-		const materials = [];
-		const frameMaterial = new THREE.LineBasicMaterial({
-			color: 0x47df9b,
-			transparent: true,
-			opacity: 0.28,
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-		});
-		materials.push(frameMaterial);
-
-		const positions = [
-			[-2.8, 1.35, 0],
-			[2.8, 1.35, -0.8],
-			[-2.8, -1.35, -1.35],
-			[2.8, -1.35, -2.1],
-		];
-
-		positions.forEach(([x, y, z], index) => {
-			const boxGeometry = new THREE.BoxGeometry(4.8, 2.45, 0.04);
-			const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
-			const frame = new THREE.LineSegments(edgesGeometry, frameMaterial);
-			frame.position.set(x, y, z);
-			frame.rotation.z = index % 2 === 0 ? -0.035 : 0.035;
-			frame.rotation.y = index % 2 === 0 ? 0.08 : -0.08;
-			group.add(frame);
-			geometries.push(boxGeometry, edgesGeometry);
-		});
-
-		return { group, geometries, materials };
 	}
 
 	function buildStreakMaterial() {
@@ -197,7 +181,25 @@
 
 		const isMobile = window.innerWidth < 768;
 		const tuningDefaults = makeTuningDefaults(isMobile);
-		const tuning = { ...tuningDefaults, ...readSavedTuning() };
+		const savedTuning = readSavedTuning();
+		const tuning = {
+			...tuningDefaults,
+			...Object.fromEntries(Object.entries(savedTuning).filter(([key]) => key in tuningDefaults)),
+		};
+		const composer = new EffectComposer(renderer);
+		composer.setPixelRatio?.(Math.min(window.devicePixelRatio, isMobile ? 1.15 : 1.45));
+		const renderPass = new RenderPass(scene, camera);
+		const bloomPass = new UnrealBloomPass(
+			new THREE.Vector2(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight)),
+			tuning.bloomStrength,
+			tuning.bloomRadius,
+			tuning.bloomThreshold,
+		);
+		const chromaPass = new ShaderPass(ChromaticAberrationShader);
+		chromaPass.enabled = false;
+		composer.addPass(renderPass);
+		composer.addPass(bloomPass);
+		composer.addPass(chromaPass);
 		const particleSprite = makeParticleSprite();
 		const particleCount = isMobile ? 2800 : 5600;
 		const positions = new Float32Array(particleCount * 3);
@@ -285,21 +287,14 @@
 		scene.add(streakCloud);
 		scene.add(particleCloud);
 
-		const heroPortal = buildPortalRing(isMobile ? 3.7 : 4.8, 0, 0x47df9b, 0.18);
-		heroPortal.group.position.x = tuning.vortexX;
-		heroPortal.group.position.y = tuning.vortexY;
-		const projectsPortal = buildPortalRing(isMobile ? 4.5 : 6.2, -48, 0xd9e3f6, 0.24);
-		projectsPortal.group.rotation.z = 0.22;
-		projectsPortal.group.rotation.x = -0.08;
-		scene.add(heroPortal.group, projectsPortal.group);
-
-		const projectFrames = buildProjectFrames();
-		scene.add(projectFrames.group);
-
 		const pointer = { x: 0, y: 0 };
 		const pointerTarget = { x: 0, y: 0 };
-		const state = { progress: 0, targetProgress: 0 };
+		const state = { progress: 0, targetProgress: 0, rawProgress: 0 };
 		let frameId = 0;
+		let lenis = null;
+		let lenisRafId = 0;
+		let lenisSetupToken = 0;
+		let lenisImportPromise = null;
 
 		const updatePanelVars = (progress) => {
 			const vortexOpen = smoothstep(tuning.vortexOpenStart, tuning.vortexOpenEnd, progress);
@@ -333,14 +328,70 @@
 		const updateScrollProgress = () => {
 			const rect = stage.getBoundingClientRect();
 			const scrollableDistance = Math.max(1, stage.offsetHeight - window.innerHeight);
-			state.targetProgress = clamp(-rect.top / scrollableDistance, 0, 1);
+			const rawProgress = clamp(-rect.top / scrollableDistance, 0, 1);
+			const animationStart = clamp(Math.min(tuning.scrollStart, tuning.scrollEnd - 0.05), 0, 0.95);
+			const animationEnd = clamp(Math.max(tuning.scrollEnd, animationStart + 0.05), animationStart + 0.05, 1);
+
+			state.rawProgress = rawProgress;
+			state.targetProgress = clamp((rawProgress - animationStart) / (animationEnd - animationStart), 0, 1);
 			updatePanelVars(state.targetProgress);
+		};
+
+		const destroyLenis = () => {
+			lenisSetupToken += 1;
+
+			if (lenisRafId) {
+				window.cancelAnimationFrame(lenisRafId);
+				lenisRafId = 0;
+			}
+
+			lenis?.destroy();
+			lenis = null;
+		};
+
+		const setupLenis = async () => {
+			destroyLenis();
+			const setupToken = lenisSetupToken;
+
+			if (!tuning.lenisEnabled || prefersReducedMotion) {
+				return;
+			}
+
+			try {
+				lenisImportPromise ??= import('https://esm.sh/lenis@1.3.11');
+				const { default: Lenis } = await lenisImportPromise;
+				if (setupToken !== lenisSetupToken) return;
+
+				lenis = new Lenis({
+					lerp: tuning.lenisLerp,
+					wheelMultiplier: tuning.lenisWheelMultiplier,
+					touchMultiplier: 1.2,
+					smoothWheel: true,
+					syncTouch: false,
+					anchors: true,
+					autoResize: true,
+				});
+				lenis.on('scroll', updateScrollProgress);
+			} catch (error) {
+				if (setupToken !== lenisSetupToken) return;
+				console.warn('Lenis could not be loaded. Falling back to native scroll.', error);
+				return;
+			}
+
+			const raf = (time) => {
+				if (setupToken !== lenisSetupToken) return;
+				lenis?.raf(time);
+				lenisRafId = window.requestAnimationFrame(raf);
+			};
+
+			lenisRafId = window.requestAnimationFrame(raf);
 		};
 
 		const resize = () => {
 			const { clientWidth, clientHeight } = container;
 			if (!clientWidth || !clientHeight) return;
 			renderer.setSize(clientWidth, clientHeight, false);
+			composer.setSize(clientWidth, clientHeight);
 			camera.aspect = clientWidth / clientHeight;
 			camera.updateProjectionMatrix();
 			updateScrollProgress();
@@ -359,7 +410,7 @@
 		const resizeObserver = new ResizeObserver(resize);
 		resizeObserver.observe(container);
 		resize();
-		updatePanelVars(0);
+		updatePanelVars(state.targetProgress);
 
 		let gui = null;
 		let guiState = null;
@@ -373,13 +424,19 @@
 			try {
 				window.localStorage.setItem(guiStorageKey, JSON.stringify(tuning));
 			} catch {}
-			updatePanelVars(state.targetProgress);
+			updateScrollProgress();
+		};
+
+		const saveLenisTuning = () => {
+			saveTuning();
+			setupLenis();
 		};
 
 		if (shouldShowGui) {
 			const { default: GUI } = await import('https://esm.sh/lil-gui@0.19.2');
 			gui = new GUI({ title: 'Scroll Space 3D' });
 			gui.domElement.style.zIndex = '100';
+			gui.domElement.setAttribute('data-lenis-prevent', 'true');
 			const toastTuning = async (message) => {
 				const output = JSON.stringify(tuning, null, 2);
 				console.log('ScrollSpace3D tuning', output);
@@ -416,6 +473,7 @@
 				}, 12000);
 			};
 			guiState = {
+				rawScroll: Number(state.rawProgress.toFixed(3)),
 				scroll: Number(state.targetProgress.toFixed(3)),
 				print: () => toastTuning('Valores copiados al portapapeles:'),
 				reset: () => {
@@ -424,7 +482,8 @@
 						window.localStorage.removeItem(guiStorageKey);
 					} catch {}
 					refreshGui();
-					updatePanelVars(state.targetProgress);
+					updateScrollProgress();
+					setupLenis();
 				},
 			};
 			const refreshGui = () => {
@@ -434,7 +493,10 @@
 			};
 
 			const layoutFolder = gui.addFolder('Alineacion');
-			layoutFolder.add(guiState, 'scroll', 0, 1, 0.001).name('scroll actual').listen().disable();
+			layoutFolder.add(guiState, 'rawScroll', 0, 1, 0.001).name('scroll pagina').listen().disable();
+			layoutFolder.add(guiState, 'scroll', 0, 1, 0.001).name('scroll animacion').listen().disable();
+			layoutFolder.add(tuning, 'scrollStart', 0, 0.85, 0.01).name('inicio animacion').onChange(saveTuning);
+			layoutFolder.add(tuning, 'scrollEnd', 0.15, 1, 0.01).name('fin animacion').onChange(saveTuning);
 			layoutFolder.add(tuning, 'vortexX', -8, 8, 0.01).name('vortex X').onChange(saveTuning);
 			layoutFolder.add(tuning, 'vortexY', -5, 7, 0.01).name('vortex Y').onChange(saveTuning);
 			layoutFolder.add(tuning, 'revealX', 32, 68, 0.1).name('reveal X %').onChange(saveTuning);
@@ -470,9 +532,27 @@
 			revealFolder.add(tuning, 'projectsEnterStart', 0.4, 0.9, 0.01).name('entrada inicio').onChange(saveTuning);
 			revealFolder.add(tuning, 'projectsEnterEnd', 0.6, 1, 0.01).name('entrada fin').onChange(saveTuning);
 
+			const postFolder = gui.addFolder('Post FX');
+			postFolder.add(tuning, 'postprocessingEnabled').name('activo').onChange(saveTuning);
+			postFolder.add(tuning, 'bloomStrength', 0, 1.2, 0.01).name('bloom fuerza').onChange(saveTuning);
+			postFolder.add(tuning, 'bloomRadius', 0, 1, 0.01).name('bloom radio').onChange(saveTuning);
+			postFolder.add(tuning, 'bloomThreshold', 0, 1, 0.01).name('bloom umbral').onChange(saveTuning);
+			postFolder.add(tuning, 'chromaAmount', 0, 0.008, 0.0001).name('chroma max').onChange(saveTuning);
+			postFolder.add(tuning, 'chromaStart', 0, 0.6, 0.01).name('chroma inicio').onChange(saveTuning);
+			postFolder.add(tuning, 'chromaPeak', 0.1, 0.8, 0.01).name('chroma pico').onChange(saveTuning);
+			postFolder.add(tuning, 'chromaFadeStart', 0.3, 0.9, 0.01).name('chroma fade inicio').onChange(saveTuning);
+			postFolder.add(tuning, 'chromaFadeEnd', 0.45, 1, 0.01).name('chroma fade fin').onChange(saveTuning);
+
+			const scrollFolder = gui.addFolder('Scroll suave');
+			scrollFolder.add(tuning, 'lenisEnabled').name('activo').onChange(saveLenisTuning);
+			scrollFolder.add(tuning, 'lenisLerp', 0.03, 0.22, 0.01).name('lerp').onChange(saveLenisTuning);
+			scrollFolder.add(tuning, 'lenisWheelMultiplier', 0.3, 1.5, 0.01).name('wheel speed').onChange(saveLenisTuning);
+
 			gui.add(guiState, 'print').name('imprimir valores');
 			gui.add(guiState, 'reset').name('reset');
 		}
+
+		setupLenis();
 
 		const animate = (time) => {
 			frameId = window.requestAnimationFrame(animate);
@@ -481,6 +561,7 @@
 
 			state.progress += (state.targetProgress - state.progress) * progressEase;
 			if (guiState) {
+				guiState.rawScroll = Number(state.rawProgress.toFixed(3));
 				guiState.scroll = Number(state.targetProgress.toFixed(3));
 			}
 			pointer.x += (pointerTarget.x - pointer.x) * 0.045;
@@ -607,33 +688,36 @@
 				streakCloud.rotation.copy(particleCloud.rotation);
 				streakCloud.position.x = tuning.vortexX;
 				streakCloud.position.y = tuning.vortexY;
-				heroPortal.group.position.x = tuning.vortexX;
-				heroPortal.group.position.y = tuning.vortexY;
 				particleMaterial.size = tuning.particleSize;
 				particleMaterial.opacity = particlePresence;
 				particleCloud.visible = particlePresence > 0.01;
 				streakCloud.visible = particlePresence > 0.01 && streakPresence > 0.01;
 				streakMaterial.uniforms.uOpacity.value = lerp(0.16, 0.98, streakPresence) * particlePresence;
-				heroPortal.group.rotation.z = elapsed * 0.04;
-				projectsPortal.group.rotation.z = 0.22 - elapsed * 0.055;
-				projectFrames.group.rotation.y = Math.sin(elapsed * 0.18) * 0.018;
 			}
 
-			const vortexOpenLive = smoothstep(tuning.vortexOpenStart, tuning.vortexOpenEnd, state.progress);
-			const projectPresence = smoothstep(0.68, 0.94, state.progress);
-			heroPortal.group.scale.setScalar(lerp(1, 1.68, vortexOpenLive));
-			projectsPortal.group.scale.setScalar(lerp(0.7, 1, projectPresence));
-			projectFrames.materials.forEach((material) => {
-				material.opacity = 0.04 + projectPresence * 0.3;
-			});
-			projectsPortal.materials.forEach((material, index) => {
-				material.opacity = (index === 0 ? 0.1 : 0.04) + projectPresence * (index === 0 ? 0.22 : 0.08);
-			});
-			heroPortal.materials.forEach((material, index) => {
-				material.opacity = (index === 0 ? 0.18 : 0.065) * (1 - smoothstep(0.12, 0.72, state.progress));
-			});
+			const fxStretch =
+				smoothstep(tuning.stretchStart, tuning.stretchPeak, state.progress) *
+				(1 - smoothstep(tuning.stretchFadeStart, tuning.stretchFadeEnd, state.progress));
+			const chromaEnter =
+				tuning.chromaStart <= 0
+					? 1
+					: smoothstep(tuning.chromaStart, Math.max(tuning.chromaPeak, tuning.chromaStart + 0.01), state.progress);
+			const chromaPulse =
+				chromaEnter * (1 - smoothstep(tuning.chromaFadeStart, tuning.chromaFadeEnd, state.progress));
+			const postprocessingActive = tuning.postprocessingEnabled && !prefersReducedMotion;
 
-			renderer.render(scene, camera);
+			bloomPass.enabled = postprocessingActive;
+			bloomPass.strength = tuning.bloomStrength * lerp(0.82, 1.18, fxStretch);
+			bloomPass.radius = tuning.bloomRadius;
+			bloomPass.threshold = tuning.bloomThreshold;
+			chromaPass.enabled = postprocessingActive && chromaPulse > 0.001 && tuning.chromaAmount > 0;
+			chromaPass.uniforms.uAmount.value = tuning.chromaAmount * chromaPulse;
+
+			if (postprocessingActive) {
+				composer.render();
+			} else {
+				renderer.render(scene, camera);
+			}
 		};
 
 		animate(0);
@@ -644,18 +728,14 @@
 			window.removeEventListener('resize', resize);
 			stage.removeEventListener('pointermove', onPointerMove);
 			resizeObserver.disconnect();
+			destroyLenis();
 			gui?.destroy();
 			particleGeometry.dispose();
 			streakGeometry.dispose();
 			particleMaterial.dispose();
 			streakMaterial.dispose();
 			particleSprite?.dispose();
-			heroPortal.geometries.forEach((geometry) => geometry.dispose());
-			heroPortal.materials.forEach((material) => material.dispose());
-			projectsPortal.geometries.forEach((geometry) => geometry.dispose());
-			projectsPortal.materials.forEach((material) => material.dispose());
-			projectFrames.geometries.forEach((geometry) => geometry.dispose());
-			projectFrames.materials.forEach((material) => material.dispose());
+			composer.dispose();
 			renderer.dispose();
 		};
 
@@ -677,5 +757,26 @@
 		display: block;
 		width: 100%;
 		height: 100%;
+	}
+
+	:global(html.lenis),
+	:global(html.lenis body) {
+		height: auto;
+	}
+
+	:global(.lenis.lenis-smooth) {
+		scroll-behavior: auto !important;
+	}
+
+	:global(.lenis.lenis-smooth [data-lenis-prevent]) {
+		overscroll-behavior: contain;
+	}
+
+	:global(.lenis.lenis-stopped) {
+		overflow: hidden;
+	}
+
+	:global(.lenis.lenis-smooth iframe) {
+		pointer-events: none;
 	}
 </style>
