@@ -58,8 +58,8 @@
 			projectRevealFeather: 21,
 			heroExitStart: 0.28,
 			heroExitEnd: 0.72,
-			projectsEnterStart: 0.6,
-			projectsEnterEnd: 0.85,
+			projectsEnterStart: 0.52,
+			projectsEnterEnd: 0.78,
 			postprocessingEnabled: true,
 			bloomStrength: 0.97,
 			bloomRadius: 0,
@@ -70,8 +70,8 @@
 			chromaFadeStart: 0.3,
 			chromaFadeEnd: 0.76,
 			lenisEnabled: true,
-			lenisLerp: 0.09,
-			lenisWheelMultiplier: 0.82,
+			lenisLerp: 0.18,
+			lenisWheelMultiplier: 0.58,
 		};
 	}
 
@@ -301,7 +301,8 @@
 			const heroExit = smoothstep(tuning.heroExitStart, tuning.heroExitEnd, progress);
 			const projectsEnter = smoothstep(tuning.projectsEnterStart, tuning.projectsEnterEnd, progress);
 			const heroOpacity = 1 - smoothstep(0.56, 0.76, progress);
-			const projectsOpacity = smoothstep(0.68, 0.88, progress);
+			const projectsOpacity = smoothstep(0.58, 0.78, progress);
+			const projectsProgress = smoothstep(0.74, 1, progress);
 			const projectsReveal = lerp(0, tuning.projectRevealMax, smoothstep(tuning.projectRevealStart, tuning.projectRevealEnd, progress));
 			const projectsRevealEdge = Math.min(170, projectsReveal + tuning.projectRevealFeather);
 
@@ -317,6 +318,7 @@
 			stage.style.setProperty('--projects-z', `${lerp(-720, 0, projectsEnter).toFixed(3)}px`);
 			stage.style.setProperty('--projects-tilt', `${lerp(-8, 0, projectsEnter).toFixed(3)}deg`);
 			stage.style.setProperty('--projects-scale', lerp(0.82, 1, projectsEnter).toFixed(3));
+			stage.style.setProperty('--projects-progress', projectsProgress.toFixed(4));
 			stage.style.setProperty('--z-progress', progress.toFixed(4));
 			stage.style.setProperty('--projects-reveal', `${projectsReveal.toFixed(3)}%`);
 			stage.style.setProperty('--projects-reveal-edge', `${projectsRevealEdge.toFixed(3)}%`);

@@ -1,0 +1,867 @@
+---
+const { projects } = Astro.props;
+
+const projectEntries = projects.map((project, index) => {
+	const roleLine =
+		project.data.description.match(/#[\w./+-]+/g)?.slice(0, 4).map((tag) => tag.replace("#", "")).join(" · ") ||
+		project.data.category.toUpperCase();
+
+	return {
+		index: String(index + 1).padStart(2, "0"),
+		title: project.data.title.toUpperCase(),
+		category: project.data.category.toUpperCase(),
+		description: project.data.description,
+		roleLine,
+		year: new Date(project.data.pubDate).getFullYear(),
+		heroImage: project.data.heroImage,
+		url: project.data.url,
+	};
+});
+
+const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
+---
+
+<section
+	class="projects-monitor"
+	data-project-monitor
+	data-project-count={projectEntries.length}
+	aria-label="Proyectos destacados"
+>
+	<div class="projects-monitor__hud">
+		<span>PROYECTOS DESTACADOS</span>
+		<span>SELECTION — 2022 / 2026</span>
+	</div>
+
+	<div class="projects-monitor__frame">
+		<div class="projects-monitor__frame-line projects-monitor__frame-line--top" aria-hidden="true"></div>
+		<div class="projects-monitor__frame-line projects-monitor__frame-line--bottom" aria-hidden="true"></div>
+		<div class="projects-monitor__ticks" aria-hidden="true">
+			{
+				Array.from({ length: 14 }, (_, index) => (
+					<span style={`--tick-index:${index};`}></span>
+				))
+			}
+		</div>
+
+		<div class="projects-monitor__index">
+			<strong data-project-current>01</strong>
+			<span>{`/ ${totalProjectsLabel}`}</span>
+		</div>
+
+		<div class="projects-monitor__meta">
+			<p data-project-role>{projectEntries[0]?.roleLine ?? ""}</p>
+		</div>
+
+		<div class="projects-monitor__monitor-wrap">
+			<div class="projects-monitor__monitor">
+				<div class="projects-monitor__bezel">
+					<div class="projects-monitor__screen">
+						{
+							projectEntries.map((project, index) => (
+								<a
+									class="projects-monitor__slide"
+									data-project-slide
+									data-slide-index={index}
+									data-role-line={project.roleLine}
+									data-year={project.year}
+									href={project.url}
+									target="_blank"
+									rel="noreferrer"
+									aria-label={`Abrir proyecto ${project.title}`}
+								>
+									<img src={project.heroImage} alt={project.title} loading="lazy" />
+								</a>
+							))
+						}
+						<div class="projects-monitor__screen-glow" aria-hidden="true"></div>
+					</div>
+				</div>
+				<div class="projects-monitor__stand" aria-hidden="true">
+					<div class="projects-monitor__stand-neck"></div>
+					<div class="projects-monitor__stand-base"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="projects-monitor__copy-backdrop" aria-hidden="true"></div>
+
+		<div class="projects-monitor__copy-stack">
+			{
+				projectEntries.map((project, index) => (
+					<div class="projects-monitor__copy" data-project-copy data-copy-index={index}>
+						<p class="projects-monitor__copy-category">{project.category}</p>
+						<h3>{project.title}</h3>
+						<p class="projects-monitor__copy-description">{project.description}</p>
+					</div>
+				))
+			}
+		</div>
+
+		<div class="projects-monitor__footer">
+			<p class="projects-monitor__footer-scroll">SCROLL</p>
+			<strong class="projects-monitor__footer-year" data-project-year>{projectEntries[0]?.year ?? ""}</strong>
+		</div>
+	</div>
+</section>
+
+<script>
+	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
+	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
+
+	const mountProjectMonitor = () => {
+		document.querySelectorAll("[data-project-monitor]").forEach((root) => {
+			if (root.dataset.ready === "true") return;
+			root.dataset.ready = "true";
+
+			const stage = root.closest("[data-z-space]");
+			if (!stage) return;
+
+			const slides = [...root.querySelectorAll("[data-project-slide]")];
+			const copies = [...root.querySelectorAll("[data-project-copy]")];
+			const currentLabel = root.querySelector("[data-project-current]");
+			const roleLabel = root.querySelector("[data-project-role]");
+			const yearLabel = root.querySelector("[data-project-year]");
+			const monitorWrap = root.querySelector(".projects-monitor__monitor-wrap");
+			const monitor = root.querySelector(".projects-monitor__monitor");
+			let frameId = 0;
+			let lastValue = -1;
+			const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+			const hoverTarget = { x: 0, y: 0 };
+			const hoverState = { x: 0, y: 0 };
+
+			const onPointerMove = (event) => {
+				if (!hoverEnabled || !monitorWrap) return;
+				const rect = monitorWrap.getBoundingClientRect();
+				const relativeX = clampValue((event.clientX - rect.left) / rect.width, 0, 1);
+				const relativeY = clampValue((event.clientY - rect.top) / rect.height, 0, 1);
+				hoverTarget.x = easeHoverAxis((relativeX - 0.5) * 2);
+				hoverTarget.y = easeHoverAxis((relativeY - 0.5) * 2);
+			};
+
+			const resetPointer = () => {
+				hoverTarget.x = 0;
+				hoverTarget.y = 0;
+			};
+
+			if (hoverEnabled && monitorWrap) {
+				monitorWrap.addEventListener("pointermove", onPointerMove, { passive: true });
+				monitorWrap.addEventListener("pointerleave", resetPointer);
+			}
+
+			const render = () => {
+				const projectsProgress =
+					parseFloat(getComputedStyle(stage).getPropertyValue("--projects-progress")) || 0;
+
+				hoverState.x += (hoverTarget.x - hoverState.x) * 0.09;
+				hoverState.y += (hoverTarget.y - hoverState.y) * 0.09;
+
+				if (monitor) {
+					const hoverDepth = Math.max(Math.abs(hoverState.x), Math.abs(hoverState.y));
+					monitor.style.setProperty("--monitor-tilt-x", `${(hoverState.x * 6.5).toFixed(3)}deg`);
+					monitor.style.setProperty("--monitor-tilt-y", `${(hoverState.y * -5).toFixed(3)}deg`);
+					monitor.style.setProperty("--monitor-shift-x", `${(hoverState.x * -8).toFixed(3)}px`);
+					monitor.style.setProperty("--monitor-shift-y", `${(hoverState.y * -6).toFixed(3)}px`);
+					monitor.style.setProperty("--monitor-hover-scale", (hoverDepth * 0.012).toFixed(4));
+				}
+
+				if (
+					Math.abs(projectsProgress - lastValue) < 0.0008 &&
+					Math.abs(hoverTarget.x - hoverState.x) < 0.001 &&
+					Math.abs(hoverTarget.y - hoverState.y) < 0.001
+				) {
+					frameId = window.requestAnimationFrame(render);
+					return;
+				}
+
+				lastValue = projectsProgress;
+
+				const maxIndex = Math.max(0, slides.length - 1);
+				let floatIndex = 0;
+				let activeIndex = 0;
+
+				if (maxIndex > 0) {
+					const scaledProgress = clampValue(projectsProgress * maxIndex, 0, maxIndex);
+					const segmentIndex = Math.min(maxIndex - 1, Math.floor(scaledProgress));
+					const segmentProgress = scaledProgress - segmentIndex;
+					const transitionStart = 0.42;
+					const transitionEnd = 0.78;
+					const transitionProgress = clampValue(
+						(segmentProgress - transitionStart) / (transitionEnd - transitionStart),
+						0,
+						1
+					);
+					const easedTransition =
+						transitionProgress * transitionProgress * (3 - 2 * transitionProgress);
+
+					floatIndex =
+						projectsProgress >= 0.999 ? maxIndex : segmentIndex + easedTransition;
+					activeIndex =
+						projectsProgress >= 0.999
+							? maxIndex
+							: segmentProgress >= 0.68
+								? Math.min(maxIndex, segmentIndex + 1)
+								: segmentIndex;
+				}
+
+				slides.forEach((slide, index) => {
+					const offset = index - floatIndex;
+					const absOffset = Math.min(Math.abs(offset), 2.2);
+					const opacity = clampValue(1 - absOffset * 1.12, 0, 1);
+					const scale = 1 - absOffset * 0.14;
+					const translateX = offset * 14;
+					const translateY = absOffset * 7;
+					const translateZ = -absOffset * 240;
+					const rotateY = offset * -22;
+
+					slide.style.opacity = opacity.toFixed(3);
+					slide.style.transform = `translate3d(${translateX}%, ${translateY}%, ${translateZ}px) scale(${scale}) rotateY(${rotateY}deg)`;
+					slide.style.filter = `blur(${absOffset * 6}px) saturate(${1 - absOffset * 0.35}) brightness(${1 - absOffset * 0.1})`;
+					slide.style.zIndex = `${Math.round(100 - absOffset * 12)}`;
+				});
+
+				copies.forEach((copy, index) => {
+					const offset = index - floatIndex;
+					const absOffset = Math.min(Math.abs(offset), 1.6);
+					const opacity = clampValue(1 - absOffset * 1.45, 0, 1);
+					const translateY = offset * 28;
+
+					copy.style.opacity = opacity.toFixed(3);
+					copy.style.transform = `translate3d(0, ${translateY}px, 0)`;
+					copy.style.pointerEvents = index === activeIndex ? "auto" : "none";
+				});
+
+				const activeCopy = copies[activeIndex];
+				const activeSlide = slides[activeIndex];
+
+				if (currentLabel) {
+					currentLabel.textContent = String(activeIndex + 1).padStart(2, "0");
+				}
+
+				if (roleLabel) {
+					roleLabel.textContent = activeSlide?.dataset.roleLine ?? "";
+				}
+
+				if (yearLabel) {
+					yearLabel.textContent = activeSlide?.dataset.year ?? "";
+				}
+
+				frameId = window.requestAnimationFrame(render);
+			};
+
+			render();
+
+			window.addEventListener(
+				"pagehide",
+				() => {
+					window.cancelAnimationFrame(frameId);
+					if (hoverEnabled && monitorWrap) {
+						monitorWrap.removeEventListener("pointermove", onPointerMove);
+						monitorWrap.removeEventListener("pointerleave", resetPointer);
+					}
+				},
+				{ once: true }
+			);
+		});
+	};
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", mountProjectMonitor, { once: true });
+	} else {
+		mountProjectMonitor();
+	}
+
+	document.addEventListener("astro:page-load", mountProjectMonitor);
+</script>
+
+<style>
+	@property --projects-border-angle {
+		syntax: "<angle>";
+		inherits: false;
+		initial-value: 0deg;
+	}
+
+	.projects-monitor {
+		position: relative;
+		height: 100%;
+		display: grid;
+		grid-template-rows: auto 1fr;
+		gap: 1rem;
+		color: #f0ece4;
+	}
+
+	.projects-monitor__hud {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding-bottom: 0.7rem;
+		border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+		font-family: "Inter", sans-serif;
+		font-size: 0.82rem;
+		font-weight: 600;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.78);
+	}
+
+	.projects-monitor__frame {
+		--projects-border-angle: 0deg;
+		position: relative;
+		height: 100%;
+		min-height: 0;
+		padding: clamp(1.5rem, 3vw, 2.4rem);
+		border-radius: 1.75rem;
+		border: 1px solid rgba(71, 223, 155, 0.28);
+		background: transparent;
+		isolation: isolate;
+		box-shadow:
+			0 0 0 1px rgba(71, 223, 155, 0.08),
+			inset 0 0 0 1px rgba(71, 223, 155, 0.08),
+			0 30px 90px rgba(0, 0, 0, 0.45);
+		overflow: hidden;
+	}
+
+	.projects-monitor__frame::before,
+	.projects-monitor__frame::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		padding: 1px;
+		pointer-events: none;
+		-webkit-mask:
+			linear-gradient(#000 0 0) content-box,
+			linear-gradient(#000 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+	}
+
+	.projects-monitor__frame::before {
+		z-index: 0;
+		background: linear-gradient(180deg, rgba(71, 223, 155, 0.14), rgba(71, 223, 155, 0.04));
+		opacity: 1;
+	}
+
+	.projects-monitor__frame::after {
+		z-index: 0;
+		background: conic-gradient(
+			from var(--projects-border-angle),
+			transparent 0deg 292deg,
+			rgba(71, 223, 155, 0.08) 306deg,
+			rgba(71, 223, 155, 0.78) 326deg,
+			rgba(255, 255, 255, 0.96) 336deg,
+			rgba(71, 223, 155, 0.58) 346deg,
+			transparent 360deg
+		);
+		filter: drop-shadow(0 0 8px rgba(71, 223, 155, 0.28));
+		animation: projects-monitor-border-rotate 3.2s linear infinite;
+	}
+
+	.projects-monitor__frame-line {
+		position: absolute;
+		left: 1.3rem;
+		right: 1.3rem;
+		height: 1px;
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.projects-monitor__frame-line--top {
+		top: 3.25rem;
+	}
+
+	.projects-monitor__frame-line--bottom {
+		right: 17rem;
+		bottom: 4.9rem;
+	}
+
+	.projects-monitor__selection {
+		position: absolute;
+		left: 0.1rem;
+		top: 50%;
+		transform: translateY(-50%) rotate(180deg);
+		writing-mode: vertical-rl;
+		font-family: "Inter", sans-serif;
+		font-size: 0.84rem;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.5);
+	}
+
+	.projects-monitor__ticks {
+		position: absolute;
+		right: 1.8rem;
+		top: 20%;
+		display: grid;
+		gap: 0.38rem;
+	}
+
+	.projects-monitor__ticks span {
+		display: block;
+		width: calc(0.8rem + (var(--tick-index) % 4) * 0.42rem);
+		height: 1px;
+		background: rgba(255, 255, 255, 0.16);
+		justify-self: end;
+	}
+
+	.projects-monitor__index {
+		position: absolute;
+		right: 2.4rem;
+		top: 3.8rem;
+		display: flex;
+		align-items: flex-end;
+		gap: 0.4rem;
+		z-index: 3;
+	}
+
+	.projects-monitor__index strong {
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(2.7rem, 5vw, 4.6rem);
+		font-weight: 700;
+		line-height: 0.9;
+		letter-spacing: 0;
+	}
+
+	.projects-monitor__index span {
+		padding-bottom: 0.7rem;
+		font-family: "Inter", sans-serif;
+		font-size: 0.9rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.52);
+	}
+
+	.projects-monitor__meta {
+		position: absolute;
+		top: 3.9rem;
+		left: 2.8rem;
+		z-index: 4;
+		display: grid;
+		gap: 0.35rem;
+		max-width: min(23rem, 28vw);
+		text-align: left;
+	}
+
+	.projects-monitor__monitor-wrap {
+		position: absolute;
+		inset: 5.3rem 11rem 10rem 11rem;
+		display: grid;
+		place-items: center;
+		perspective: 1800px;
+	}
+
+	.projects-monitor__monitor {
+		--monitor-tilt-x: 0deg;
+		--monitor-tilt-y: 0deg;
+		--monitor-shift-x: 0px;
+		--monitor-shift-y: 0px;
+		--monitor-hover-scale: 0;
+		position: relative;
+		width: min(100%, 48rem);
+		transform-style: preserve-3d;
+		transform:
+			translate3d(var(--monitor-shift-x), var(--monitor-shift-y), 0)
+			rotateX(calc(8deg + var(--monitor-tilt-y)))
+			rotateY(calc(-11deg + var(--monitor-tilt-x)))
+			scale(calc(1 + var(--monitor-hover-scale)))
+			rotateZ(1deg);
+		transition: filter 220ms ease;
+		will-change: transform;
+		filter: drop-shadow(0 32px 80px rgba(0, 0, 0, 0.48));
+	}
+
+	.projects-monitor__bezel {
+		position: relative;
+		padding: 1rem 1rem 1.2rem;
+		border-radius: 1.9rem;
+		background:
+			linear-gradient(180deg, rgba(73, 69, 67, 0.95), rgba(22, 21, 20, 0.98)),
+			linear-gradient(140deg, rgba(255, 255, 255, 0.1), transparent 36%);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+			inset 0 0 30px rgba(255, 255, 255, 0.02);
+	}
+
+	.projects-monitor__bezel::before {
+		content: "";
+		position: absolute;
+		inset: 0.5rem;
+		border-radius: 1.45rem;
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+		pointer-events: none;
+	}
+
+	.projects-monitor__screen {
+		position: relative;
+		aspect-ratio: 16 / 10;
+		border-radius: 1rem;
+		overflow: hidden;
+		background:
+			linear-gradient(180deg, rgba(8, 10, 14, 1), rgba(2, 2, 4, 1));
+		transform: translateZ(24px);
+	}
+
+	.projects-monitor__slide,
+	.projects-monitor__screen-glow {
+		position: absolute;
+		inset: 0;
+	}
+
+	.projects-monitor__slide {
+		display: block;
+		transform-origin: center center;
+		transition:
+			opacity 220ms ease,
+			filter 220ms ease;
+	}
+
+	.projects-monitor__slide img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.projects-monitor__screen-glow {
+		background:
+			radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.18), transparent 30%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%, rgba(0, 0, 0, 0.18));
+		pointer-events: none;
+	}
+
+	.projects-monitor__stand {
+		position: relative;
+		width: 32%;
+		margin: -0.35rem auto 0;
+		transform: translateZ(-2px);
+	}
+
+	.projects-monitor__stand-neck {
+		width: 26%;
+		height: 3.8rem;
+		margin: 0 auto;
+		border-radius: 0 0 1rem 1rem;
+		background:
+			linear-gradient(180deg, rgba(77, 73, 69, 0.96), rgba(21, 21, 20, 1));
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+	}
+
+	.projects-monitor__stand-base {
+		height: 1.9rem;
+		margin-top: -0.15rem;
+		border-radius: 1rem 1rem 1.3rem 1.3rem;
+		background:
+			linear-gradient(180deg, rgba(56, 53, 50, 0.98), rgba(14, 13, 12, 1));
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+			0 14px 30px rgba(0, 0, 0, 0.34);
+	}
+
+	.projects-monitor__copy-stack {
+		position: absolute;
+		left: 2.2rem;
+		right: 2.2rem;
+		bottom: 5.9rem;
+		min-height: 8rem;
+		z-index: 4;
+		pointer-events: none;
+	}
+
+	.projects-monitor__copy-backdrop {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: min(38%, 22rem);
+		z-index: 3;
+		pointer-events: none;
+		background: linear-gradient(
+			0deg,
+			rgba(0, 0, 0, 0.92) 0%,
+			rgba(0, 0, 0, 0.72) 32%,
+			rgba(0, 0, 0, 0.28) 68%,
+			rgba(0, 0, 0, 0) 100%
+		);
+	}
+
+	.projects-monitor__copy {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: grid;
+		gap: 0.4rem;
+		transition: opacity 240ms ease;
+	}
+
+	.projects-monitor__copy-category,
+	.projects-monitor__meta p,
+	.projects-monitor__footer p,
+	.projects-monitor__footer-scroll {
+		margin: 0;
+		font-family: "Inter", sans-serif;
+		font-size: 0.86rem;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.58);
+	}
+
+	.projects-monitor__copy-category {
+		color: #47df9b;
+	}
+
+	.projects-monitor__copy h3 {
+		margin: 0;
+		max-width: 100%;
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(3.8rem, 8.4vw, 8rem);
+		font-weight: 700;
+		line-height: 0.88;
+		letter-spacing: -0.03em;
+		text-transform: uppercase;
+		text-wrap: balance;
+		color: #f0ece4;
+		text-shadow: 0 18px 30px rgba(0, 0, 0, 0.34);
+	}
+
+	.projects-monitor__copy-description {
+		margin: 0;
+		max-width: 36rem;
+		color: rgba(240, 236, 228, 0.72);
+		font-size: 0.98rem;
+		line-height: 1.6;
+	}
+
+	.projects-monitor__footer {
+		position: absolute;
+		left: 2rem;
+		right: 2rem;
+		bottom: 1.4rem;
+		display: grid;
+		grid-template-columns: 1fr auto auto;
+		align-items: end;
+		gap: 1rem;
+		z-index: 4;
+	}
+
+	.projects-monitor__footer-year {
+		font-family: "Bebas Neue", sans-serif;
+		font-size: 1.5rem;
+		font-weight: 700;
+		line-height: 1;
+		letter-spacing: 0;
+		text-transform: uppercase;
+		color: #f0ece4;
+	}
+
+	.projects-monitor__footer-scroll {
+		align-self: center;
+		justify-self: center;
+	}
+
+	@media (max-width: 1200px) {
+		.projects-monitor__monitor-wrap {
+			inset: 5.4rem 6rem 11.5rem 6.5rem;
+		}
+
+		.projects-monitor__copy h3 {
+			font-size: clamp(3.2rem, 8vw, 6.8rem);
+		}
+	}
+
+	@media (max-width: 960px) {
+		.projects-monitor__hud {
+			font-size: 0.7rem;
+		}
+
+		.projects-monitor__selection,
+		.projects-monitor__ticks {
+			display: none;
+		}
+
+		.projects-monitor__frame {
+			padding: 1rem;
+		}
+
+		.projects-monitor__frame-line--top {
+			top: 2.8rem;
+		}
+
+		.projects-monitor__frame-line--bottom {
+			right: 1rem;
+			bottom: 4.3rem;
+		}
+
+		.projects-monitor__index {
+			right: 1.2rem;
+			top: 3.1rem;
+		}
+
+		.projects-monitor__meta {
+			top: 3.2rem;
+			left: 1.15rem;
+			max-width: min(16rem, 34vw);
+		}
+
+		.projects-monitor__monitor-wrap {
+			inset: 5.3rem 1.8rem 11.2rem;
+		}
+
+		.projects-monitor__copy-stack {
+			left: 1.2rem;
+			right: 1.2rem;
+			bottom: 5.4rem;
+		}
+
+		.projects-monitor__copy-backdrop {
+			height: min(42%, 20rem);
+		}
+
+		.projects-monitor__copy h3 {
+			font-size: clamp(2.7rem, 10vw, 5rem);
+		}
+
+		.projects-monitor__copy-description {
+			max-width: 30rem;
+			font-size: 0.9rem;
+		}
+
+		.projects-monitor__footer {
+			left: 1rem;
+			right: 1rem;
+			bottom: 1rem;
+			grid-template-columns: 1fr auto;
+			grid-template-areas:
+				". year"
+				"scroll scroll";
+		}
+
+		.projects-monitor__footer-year {
+			grid-area: year;
+			justify-self: end;
+		}
+
+		.projects-monitor__footer-scroll {
+			grid-area: scroll;
+		}
+	}
+
+	@media (max-width: 720px) {
+		.projects-monitor {
+			gap: 0.75rem;
+		}
+
+		.projects-monitor__hud {
+			font-size: 0.62rem;
+			letter-spacing: 0.12em;
+		}
+
+		.projects-monitor__frame {
+			padding: 0.85rem;
+			border-radius: 1.2rem;
+		}
+
+		.projects-monitor__frame-line {
+			left: 0.85rem;
+			right: 0.85rem;
+		}
+
+		.projects-monitor__frame-line--top {
+			top: 2.45rem;
+		}
+
+		.projects-monitor__frame-line--bottom {
+			bottom: 4rem;
+		}
+
+		.projects-monitor__index {
+			right: 0.9rem;
+			top: 2.6rem;
+		}
+
+		.projects-monitor__index strong {
+			font-size: 2.4rem;
+		}
+
+		.projects-monitor__index span {
+			padding-bottom: 0.45rem;
+			font-size: 0.72rem;
+		}
+
+		.projects-monitor__monitor-wrap {
+			inset: 4.45rem 0.75rem 9.5rem;
+		}
+
+		.projects-monitor__monitor {
+			transform:
+				rotateX(7deg)
+				rotateY(-8deg)
+				rotateZ(1deg);
+		}
+
+		.projects-monitor__bezel {
+			padding: 0.7rem 0.7rem 0.85rem;
+			border-radius: 1.2rem;
+		}
+
+		.projects-monitor__screen {
+			border-radius: 0.7rem;
+		}
+
+		.projects-monitor__stand-neck {
+			height: 2.7rem;
+		}
+
+		.projects-monitor__stand-base {
+			height: 1.45rem;
+		}
+
+		.projects-monitor__copy-stack {
+			left: 0.9rem;
+			right: 0.9rem;
+			bottom: 4.5rem;
+			min-height: 6.2rem;
+		}
+
+		.projects-monitor__copy-backdrop {
+			height: min(46%, 18rem);
+		}
+
+		.projects-monitor__copy-category,
+		.projects-monitor__meta p,
+		.projects-monitor__footer p,
+		.projects-monitor__footer-scroll {
+			font-size: 0.64rem;
+			letter-spacing: 0.12em;
+		}
+
+		.projects-monitor__meta {
+			top: 2.85rem;
+			left: 0.9rem;
+			max-width: 10.5rem;
+		}
+
+		.projects-monitor__copy h3 {
+			font-size: clamp(2rem, 12vw, 3.7rem);
+			line-height: 0.92;
+		}
+
+		.projects-monitor__copy-description {
+			max-width: 21rem;
+			font-size: 0.78rem;
+			line-height: 1.45;
+		}
+
+		.projects-monitor__footer {
+			bottom: 0.85rem;
+		}
+
+		.projects-monitor__footer-year {
+			font-size: 1.1rem;
+		}
+	}
+
+	@keyframes projects-monitor-border-rotate {
+		to {
+			--projects-border-angle: 360deg;
+		}
+	}
+</style>

@@ -1,5 +1,6 @@
 ---
 import BaseHead from "../components/BaseHead.astro";
+import ProjectsMonitor from "../components/ProjectsMonitor.astro";
 import ScrollSpace3D from "../components/ScrollSpace3D.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import { getCollection } from "astro:content";
@@ -195,37 +196,8 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 								</div>
 							</section>
 
-							<section class="section-block z-panel z-panel--projects" aria-labelledby="projects-title">
-								<div class="section-heading">
-									<div>
-										<h2 id="projects-title">PROYECTOS SELECCIONADOS</h2>
-										<p>[ LANDINGS, WEBAPPS, UX/UI, FRONTEND ]</p>
-									</div>
-									<span>SCROLL TO DISCOVER 01-04</span>
-								</div>
-
-								<div class="projects-grid">
-									{projects.map((project, index) => (
-										<a
-											class="project-card"
-											href={project.data.url}
-											target="_blank"
-											rel="noreferrer"
-										>
-											<img
-												src={project.data.heroImage}
-												alt={project.data.title}
-												loading="lazy"
-											/>
-											<div class="project-card__overlay"></div>
-											<div class="project-card__content">
-												<p>{`PROYECTO 0${index + 1} · ${project.data.category.toUpperCase()}`}</p>
-												<h3>{project.data.title}</h3>
-												<span>{project.data.description}</span>
-											</div>
-										</a>
-									))}
-								</div>
+							<section class="section-block z-panel z-panel--projects" aria-label="Proyectos seleccionados">
+								<ProjectsMonitor projects={projects} />
 							</section>
 						</div>
 					</section>
@@ -578,7 +550,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		--projects-reveal-x: 50%;
 		--projects-reveal-y: 44%;
 		position: relative;
-		min-height: 235vh;
+		min-height: 320vh;
 		margin: 0 auto;
 	}
 
@@ -1244,7 +1216,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	@media (max-width: 960px) {
 		.z-space {
-			min-height: 225vh;
+			min-height: 300vh;
 		}
 
 		.z-space__viewport {
@@ -1332,7 +1304,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	@media (max-width: 720px) {
 		.z-space {
-			min-height: 240vh;
+			min-height: 320vh;
 		}
 
 		.z-space__anchor--projects {
