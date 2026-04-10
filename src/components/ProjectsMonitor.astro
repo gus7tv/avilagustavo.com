@@ -46,7 +46,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			aria-label={`Abrir proyecto ${projectEntries[0]?.title ?? "activo"}`}
 		></a>
 
-		<div class="projects-monitor__frame-line projects-monitor__frame-line--top" aria-hidden="true"></div>
 		<div class="projects-monitor__frame-line projects-monitor__frame-line--bottom" aria-hidden="true"></div>
 		<div class="projects-monitor__ticks" aria-hidden="true">
 			{
@@ -73,7 +72,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					<div class="projects-monitor__copy" data-project-copy data-copy-index={index}>
 						<p class="projects-monitor__copy-category">{project.category}</p>
 						<h3>{project.title}</h3>
-						<p class="projects-monitor__copy-description">{project.description}</p>
 					</div>
 				))
 			}
@@ -91,7 +89,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
-	const guiStorageKey = "projects-monitor-3d-tuning-v3";
+	const guiStorageKey = "projects-monitor-3d-tuning-v4";
 	const textureLoader = new THREE.TextureLoader();
 	const textureCache = new Map();
 
@@ -104,34 +102,34 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	};
 
 	const makeTuningDefaults = () => ({
-		wrapOffsetY: 26,
-		wrapOffsetX: 0,
-		monitorScale: 0.82,
-		cameraY: -2,
-		cameraZ: 12.39,
-		lookAtY: -0.8,
-		lookAtZ: -1.61,
-		rigRotX: 0.015,
-		rigRotY: -0.435,
-		rigRotZ: -0.025,
+		wrapOffsetY: 9,
+		wrapOffsetX: -27,
+		monitorScale: 0.86,
+		cameraY: -1.61,
+		cameraZ: 14.34,
+		lookAtY: -0.42,
+		lookAtZ: -0.75,
+		rigRotX: -0.025,
+		rigRotY: -0.32,
+		rigRotZ: -0.04,
 		rigPosY: -0.44,
 		rigPosX: 0.32,
-		hoverRotX: 0.12,
+		hoverRotX: 0.17,
 		hoverRotY: 0.2,
-		hoverRotZ: -0.035,
-		hoverShiftX: -0.42,
-		hoverShiftY: -0.24,
-		cameraHoverX: 0.11,
+		hoverRotZ: -0.015,
+		hoverShiftX: -0.69,
+		hoverShiftY: 0.1,
+		cameraHoverX: 0.44,
 		cameraHoverY: -0.14,
-		hoverEase: 0.07,
+		hoverEase: 0.045,
 		floatAmount: 0.04,
 		floatSpeed: 1.02,
-		blendShift: 0,
+		blendShift: 0.09,
 		blendScale: 0.023,
-		ambientIntensity: 0.56,
+		ambientIntensity: 0,
 		hemiIntensity: 0,
 		keyIntensity: 0,
-		rimIntensity: 8.1,
+		rimIntensity: 14,
 	});
 
 	const createPlaceholderTexture = () => {
@@ -206,6 +204,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					Object.entries(savedTuning).filter(([key]) => key in tuningDefaults)
 				),
 			};
+			const headerParticleTone = "#d7fff1";
 
 			const renderer = new THREE.WebGLRenderer({
 				alpha: true,
@@ -234,7 +233,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			keyLight.position.set(6, 8, 10);
 			scene.add(keyLight);
 
-			const rimLight = new THREE.PointLight(0x47df9b, 7, 24, 2);
+			const rimLight = new THREE.PointLight(headerParticleTone, 7, 24, 2);
 			rimLight.position.set(-6, 1.5, 7);
 			scene.add(rimLight);
 
@@ -293,11 +292,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			const shell = new THREE.Mesh(new THREE.BoxGeometry(8.8, 5.45, 0.7), shellMaterial);
 			rig.add(shell);
 
-			const bezel = new THREE.Mesh(new THREE.BoxGeometry(8.15, 4.8, 0.18), trimMaterial);
-			bezel.position.z = 0.27;
-			rig.add(bezel);
-
-			const screenGeometry = new THREE.PlaneGeometry(7.4, 4.14);
+			const screenGeometry = new THREE.PlaneGeometry(8.34, 5.08);
 			const screenBaseMaterial = new THREE.MeshBasicMaterial({
 				map: placeholderTexture,
 				toneMapped: false,
@@ -316,7 +311,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			screenOverlay.position.z = 0.385;
 			rig.add(screenOverlay);
 
-			const glass = new THREE.Mesh(new THREE.PlaneGeometry(7.56, 4.3), glassMaterial);
+			const glass = new THREE.Mesh(screenGeometry.clone(), glassMaterial);
 			glass.position.z = 0.43;
 			rig.add(glass);
 
@@ -789,10 +784,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		background: rgba(255, 255, 255, 0.08);
 	}
 
-	.projects-monitor__frame-line--top {
-		top: 3.25rem;
-	}
-
 	.projects-monitor__frame-line--bottom {
 		right: 17rem;
 		bottom: 4.9rem;
@@ -830,7 +821,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	.projects-monitor__index {
 		position: absolute;
 		right: 2.4rem;
-		top: 3.8rem;
+		top: 3.3rem;
 		display: flex;
 		align-items: flex-end;
 		gap: 0.4rem;
@@ -856,7 +847,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 	.projects-monitor__meta {
 		position: absolute;
-		top: 3.9rem;
+		top: 3.35rem;
 		left: 2.8rem;
 		z-index: 4;
 		display: grid;
@@ -868,7 +859,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	.projects-monitor__monitor-stage {
 		position: absolute;
 		inset: 0;
-		z-index: 1;
 		filter: drop-shadow(0 34px 80px rgba(0, 0, 0, 0.42));
 	}
 
@@ -945,19 +935,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		font-size: clamp(3.8rem, 8.4vw, 8rem);
 		font-weight: 700;
 		line-height: 0.88;
-		letter-spacing: -0.03em;
 		text-transform: uppercase;
 		text-wrap: balance;
 		color: #f0ece4;
 		text-shadow: 0 18px 30px rgba(0, 0, 0, 0.34);
-	}
-
-	.projects-monitor__copy-description {
-		margin: 0;
-		max-width: 36rem;
-		color: rgba(240, 236, 228, 0.72);
-		font-size: 0.98rem;
-		line-height: 1.6;
 	}
 
 	.projects-monitor__footer {
@@ -1007,10 +988,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			padding: 1rem;
 		}
 
-		.projects-monitor__frame-line--top {
-			top: 2.8rem;
-		}
-
 		.projects-monitor__frame-line--bottom {
 			right: 1rem;
 			bottom: 4.3rem;
@@ -1018,11 +995,11 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 		.projects-monitor__index {
 			right: 1.2rem;
-			top: 3.1rem;
+			top: 2.7rem;
 		}
 
 		.projects-monitor__meta {
-			top: 3.2rem;
+			top: 2.75rem;
 			left: 1.15rem;
 			max-width: min(16rem, 34vw);
 		}
@@ -1039,11 +1016,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 		.projects-monitor__copy h3 {
 			font-size: clamp(2.7rem, 10vw, 5rem);
-		}
-
-		.projects-monitor__copy-description {
-			max-width: 30rem;
-			font-size: 0.9rem;
 		}
 
 		.projects-monitor__footer {
@@ -1086,17 +1058,13 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			right: 0.85rem;
 		}
 
-		.projects-monitor__frame-line--top {
-			top: 2.45rem;
-		}
-
 		.projects-monitor__frame-line--bottom {
 			bottom: 4rem;
 		}
 
 		.projects-monitor__index {
 			right: 0.9rem;
-			top: 2.6rem;
+			top: 2.2rem;
 		}
 
 		.projects-monitor__index strong {
@@ -1132,7 +1100,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		}
 
 		.projects-monitor__meta {
-			top: 2.85rem;
+			top: 2.35rem;
 			left: 0.9rem;
 			max-width: 10.5rem;
 		}
@@ -1140,12 +1108,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		.projects-monitor__copy h3 {
 			font-size: clamp(2rem, 12vw, 3.7rem);
 			line-height: 0.92;
-		}
-
-		.projects-monitor__copy-description {
-			max-width: 21rem;
-			font-size: 0.78rem;
-			line-height: 1.45;
 		}
 
 		.projects-monitor__footer {
