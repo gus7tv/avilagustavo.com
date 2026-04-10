@@ -89,7 +89,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
-	const guiStorageKey = "projects-monitor-3d-tuning-v4";
+	const guiStorageKey = "projects-monitor-3d-tuning-v5";
 	const textureLoader = new THREE.TextureLoader();
 	const textureCache = new Map();
 
@@ -109,17 +109,17 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		cameraZ: 14.34,
 		lookAtY: -0.42,
 		lookAtZ: -0.75,
-		rigRotX: -0.025,
-		rigRotY: -0.32,
+		rigRotX: 0,
+		rigRotY: -0.51,
 		rigRotZ: -0.04,
 		rigPosY: -0.44,
 		rigPosX: 0.32,
 		hoverRotX: 0.17,
 		hoverRotY: 0.2,
 		hoverRotZ: -0.015,
-		hoverShiftX: -0.69,
+		hoverShiftX: 0.01,
 		hoverShiftY: 0.1,
-		cameraHoverX: 0.44,
+		cameraHoverX: 0.08,
 		cameraHoverY: -0.14,
 		hoverEase: 0.045,
 		floatAmount: 0.04,
