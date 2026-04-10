@@ -13,7 +13,10 @@ const projectEntries = projects.map((project, index) => {
 		description: project.data.description,
 		roleLine,
 		year: new Date(project.data.pubDate).getFullYear(),
-		heroImage: project.data.heroImage,
+		heroImage:
+			typeof project.data.heroImage === "string"
+				? project.data.heroImage
+				: project.data.heroImage.src,
 		url: project.data.url,
 	};
 });
@@ -33,6 +36,16 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	</div>
 
 	<div class="projects-monitor__frame">
+		<div class="projects-monitor__monitor-stage" data-project-stage aria-hidden="true"></div>
+		<a
+			class="projects-monitor__monitor-link"
+			data-project-link
+			href={projectEntries[0]?.url ?? "#"}
+			target="_blank"
+			rel="noreferrer"
+			aria-label={`Abrir proyecto ${projectEntries[0]?.title ?? "activo"}`}
+		></a>
+
 		<div class="projects-monitor__frame-line projects-monitor__frame-line--top" aria-hidden="true"></div>
 		<div class="projects-monitor__frame-line projects-monitor__frame-line--bottom" aria-hidden="true"></div>
 		<div class="projects-monitor__ticks" aria-hidden="true">
@@ -50,37 +63,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 		<div class="projects-monitor__meta">
 			<p data-project-role>{projectEntries[0]?.roleLine ?? ""}</p>
-		</div>
-
-		<div class="projects-monitor__monitor-wrap">
-			<div class="projects-monitor__monitor">
-				<div class="projects-monitor__bezel">
-					<div class="projects-monitor__screen">
-						{
-							projectEntries.map((project, index) => (
-								<a
-									class="projects-monitor__slide"
-									data-project-slide
-									data-slide-index={index}
-									data-role-line={project.roleLine}
-									data-year={project.year}
-									href={project.url}
-									target="_blank"
-									rel="noreferrer"
-									aria-label={`Abrir proyecto ${project.title}`}
-								>
-									<img src={project.heroImage} alt={project.title} loading="lazy" />
-								</a>
-							))
-						}
-						<div class="projects-monitor__screen-glow" aria-hidden="true"></div>
-					</div>
-				</div>
-				<div class="projects-monitor__stand" aria-hidden="true">
-					<div class="projects-monitor__stand-neck"></div>
-					<div class="projects-monitor__stand-base"></div>
-				</div>
-			</div>
 		</div>
 
 		<div class="projects-monitor__copy-backdrop" aria-hidden="true"></div>
@@ -104,34 +86,308 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	</div>
 </section>
 
-<script>
+<script type="module" define:vars={{ projectEntries }}>
+	import * as THREE from "https://esm.sh/three@0.161.0";
+
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
+	const guiStorageKey = "projects-monitor-3d-tuning-v3";
+	const textureLoader = new THREE.TextureLoader();
+	const textureCache = new Map();
 
-	const mountProjectMonitor = () => {
-		document.querySelectorAll("[data-project-monitor]").forEach((root) => {
+	const readSavedTuning = () => {
+		try {
+			return JSON.parse(window.localStorage.getItem(guiStorageKey) || "{}");
+		} catch {
+			return {};
+		}
+	};
+
+	const makeTuningDefaults = () => ({
+		wrapOffsetY: 26,
+		wrapOffsetX: 0,
+		monitorScale: 0.82,
+		cameraY: -2,
+		cameraZ: 12.39,
+		lookAtY: -0.8,
+		lookAtZ: -1.61,
+		rigRotX: 0.015,
+		rigRotY: -0.435,
+		rigRotZ: -0.025,
+		rigPosY: -0.44,
+		rigPosX: 0.32,
+		hoverRotX: 0.12,
+		hoverRotY: 0.2,
+		hoverRotZ: -0.035,
+		hoverShiftX: -0.42,
+		hoverShiftY: -0.24,
+		cameraHoverX: 0.11,
+		cameraHoverY: -0.14,
+		hoverEase: 0.07,
+		floatAmount: 0.04,
+		floatSpeed: 1.02,
+		blendShift: 0,
+		blendScale: 0.023,
+		ambientIntensity: 0.56,
+		hemiIntensity: 0,
+		keyIntensity: 0,
+		rimIntensity: 8.1,
+	});
+
+	const createPlaceholderTexture = () => {
+		const canvas = document.createElement("canvas");
+		canvas.width = 32;
+		canvas.height = 32;
+		const context = canvas.getContext("2d");
+		if (context) {
+			const gradient = context.createLinearGradient(0, 0, 32, 32);
+			gradient.addColorStop(0, "#101217");
+			gradient.addColorStop(1, "#050505");
+			context.fillStyle = gradient;
+			context.fillRect(0, 0, 32, 32);
+		}
+		const texture = new THREE.CanvasTexture(canvas);
+		texture.colorSpace = THREE.SRGBColorSpace;
+		return texture;
+	};
+
+	const placeholderTexture = createPlaceholderTexture();
+
+	const createGlowTexture = () => {
+		const canvas = document.createElement("canvas");
+		canvas.width = 256;
+		canvas.height = 256;
+		const context = canvas.getContext("2d");
+		if (context) {
+			const gradient = context.createRadialGradient(128, 128, 8, 128, 128, 128);
+			gradient.addColorStop(0, "rgba(160,255,222,0.95)");
+			gradient.addColorStop(0.25, "rgba(71,223,155,0.32)");
+			gradient.addColorStop(0.58, "rgba(71,223,155,0.08)");
+			gradient.addColorStop(1, "rgba(71,223,155,0)");
+			context.fillStyle = gradient;
+			context.fillRect(0, 0, 256, 256);
+		}
+		const texture = new THREE.CanvasTexture(canvas);
+		texture.colorSpace = THREE.SRGBColorSpace;
+		return texture;
+	};
+
+	const loadTexture = async (src) => {
+		if (!src) return placeholderTexture;
+		if (textureCache.has(src)) return textureCache.get(src);
+		const texture = await textureLoader.loadAsync(src);
+		texture.colorSpace = THREE.SRGBColorSpace;
+		texture.anisotropy = 4;
+		textureCache.set(src, texture);
+		return texture;
+	};
+
+	const mountProjectMonitor = async () => {
+		document.querySelectorAll("[data-project-monitor]").forEach(async (root) => {
 			if (root.dataset.ready === "true") return;
 			root.dataset.ready = "true";
 
 			const stage = root.closest("[data-z-space]");
-			if (!stage) return;
-
-			const slides = [...root.querySelectorAll("[data-project-slide]")];
+			const frame = root.querySelector(".projects-monitor__frame");
+			const sceneHost = root.querySelector("[data-project-stage]");
+			const monitorLink = root.querySelector("[data-project-link]");
 			const copies = [...root.querySelectorAll("[data-project-copy]")];
 			const currentLabel = root.querySelector("[data-project-current]");
 			const roleLabel = root.querySelector("[data-project-role]");
 			const yearLabel = root.querySelector("[data-project-year]");
-			const monitorWrap = root.querySelector(".projects-monitor__monitor-wrap");
-			const monitor = root.querySelector(".projects-monitor__monitor");
-			let frameId = 0;
-			let lastValue = -1;
+
+			if (!stage || !frame || !sceneHost || !monitorLink) return;
+
+			const tuningDefaults = makeTuningDefaults();
+			const savedTuning = readSavedTuning();
+			const tuning = {
+				...tuningDefaults,
+				...Object.fromEntries(
+					Object.entries(savedTuning).filter(([key]) => key in tuningDefaults)
+				),
+			};
+
+			const renderer = new THREE.WebGLRenderer({
+				alpha: true,
+				antialias: true,
+				powerPreference: "high-performance",
+			});
+			renderer.setClearColor(0x000000, 0);
+			renderer.outputColorSpace = THREE.SRGBColorSpace;
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+			sceneHost.appendChild(renderer.domElement);
+
+			const scene = new THREE.Scene();
+			const camera = new THREE.PerspectiveCamera(23, 1, 0.1, 40);
+			camera.position.set(0, 0.2, 13.2);
+
+			const glowTexture = createGlowTexture();
+
+			const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
+			scene.add(ambientLight);
+
+			const hemiLight = new THREE.HemisphereLight(0x90ffd6, 0x080808, 1.2);
+			hemiLight.position.set(0, 6, 0);
+			scene.add(hemiLight);
+
+			const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
+			keyLight.position.set(6, 8, 10);
+			scene.add(keyLight);
+
+			const rimLight = new THREE.PointLight(0x47df9b, 7, 24, 2);
+			rimLight.position.set(-6, 1.5, 7);
+			scene.add(rimLight);
+
+			const rig = new THREE.Group();
+			scene.add(rig);
+
+			const backdropMaterial = new THREE.MeshStandardMaterial({
+				color: 0x070908,
+				roughness: 0.92,
+				metalness: 0.06,
+			});
+			const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), backdropMaterial);
+			backdrop.position.set(0, -0.2, -6.8);
+			scene.add(backdrop);
+
+			const backdropGlow = new THREE.Mesh(
+				new THREE.PlaneGeometry(1, 1),
+				new THREE.MeshBasicMaterial({
+					map: glowTexture,
+					transparent: true,
+					opacity: 0.3,
+					depthWrite: false,
+					blending: THREE.AdditiveBlending,
+				})
+			);
+			backdropGlow.position.set(0, -0.35, -6.4);
+			scene.add(backdropGlow);
+
+			const shellMaterial = new THREE.MeshPhysicalMaterial({
+				color: 0x1c1b1c,
+				roughness: 0.48,
+				metalness: 0.72,
+				clearcoat: 0.65,
+				clearcoatRoughness: 0.2,
+			});
+			const trimMaterial = new THREE.MeshStandardMaterial({
+				color: 0x3d3937,
+				roughness: 0.38,
+				metalness: 0.64,
+			});
+			const standMaterial = new THREE.MeshStandardMaterial({
+				color: 0x201f20,
+				roughness: 0.62,
+				metalness: 0.42,
+			});
+			const glassMaterial = new THREE.MeshPhysicalMaterial({
+				color: 0xffffff,
+				transparent: true,
+				opacity: 0.08,
+				roughness: 0.14,
+				metalness: 0.18,
+				clearcoat: 1,
+				clearcoatRoughness: 0.1,
+			});
+
+			const shell = new THREE.Mesh(new THREE.BoxGeometry(8.8, 5.45, 0.7), shellMaterial);
+			rig.add(shell);
+
+			const bezel = new THREE.Mesh(new THREE.BoxGeometry(8.15, 4.8, 0.18), trimMaterial);
+			bezel.position.z = 0.27;
+			rig.add(bezel);
+
+			const screenGeometry = new THREE.PlaneGeometry(7.4, 4.14);
+			const screenBaseMaterial = new THREE.MeshBasicMaterial({
+				map: placeholderTexture,
+				toneMapped: false,
+			});
+			const screenOverlayMaterial = new THREE.MeshBasicMaterial({
+				map: placeholderTexture,
+				toneMapped: false,
+				transparent: true,
+				opacity: 0,
+			});
+			const screenBase = new THREE.Mesh(screenGeometry, screenBaseMaterial);
+			screenBase.position.z = 0.38;
+			rig.add(screenBase);
+
+			const screenOverlay = new THREE.Mesh(screenGeometry, screenOverlayMaterial);
+			screenOverlay.position.z = 0.385;
+			rig.add(screenOverlay);
+
+			const glass = new THREE.Mesh(new THREE.PlaneGeometry(7.56, 4.3), glassMaterial);
+			glass.position.z = 0.43;
+			rig.add(glass);
+
+			const neck = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.05, 0.48), standMaterial);
+			neck.position.set(0, -3.72, -0.06);
+			rig.add(neck);
+
+			const baseUpper = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.34, 0.84), trimMaterial);
+			baseUpper.position.set(0, -4.95, 0.02);
+			rig.add(baseUpper);
+
+			const baseLower = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.5, 1.35), standMaterial);
+			baseLower.position.set(0, -5.42, 0.04);
+			rig.add(baseLower);
+
+			const floorShadow = new THREE.Mesh(
+				new THREE.CircleGeometry(2.7, 48),
+				new THREE.MeshBasicMaterial({
+					color: 0x000000,
+					transparent: true,
+					opacity: 0.22,
+					blending: THREE.NormalBlending,
+				})
+			);
+			floorShadow.rotation.x = -Math.PI / 2;
+			floorShadow.position.set(0, -5.72, 0.28);
+			floorShadow.scale.set(1.55, 0.72, 1);
+			scene.add(floorShadow);
+
+			const textures = projectEntries.map(() => placeholderTexture);
+			projectEntries.forEach((project, index) => {
+				loadTexture(project.heroImage)
+					.then((texture) => {
+						textures[index] = texture;
+					})
+					.catch(() => {
+						textures[index] = placeholderTexture;
+					});
+			});
+
 			const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+			const shouldShowGui =
+				window.location.search.includes("gui=1") ||
+				window.location.hostname === "localhost" ||
+				window.location.hostname === "127.0.0.1";
 			const hoverTarget = { x: 0, y: 0 };
 			const hoverState = { x: 0, y: 0 };
+			let frameId = 0;
+			let lastProgress = -1;
+			let gui = null;
+			let guiToastTimer = 0;
 
-			const onPointerMove = (event) => {
-				if (!hoverEnabled || !monitorWrap) return;
-				const rect = monitorWrap.getBoundingClientRect();
+			const applyTuning = () => {
+				ambientLight.intensity = tuning.ambientIntensity;
+				hemiLight.intensity = tuning.hemiIntensity;
+				keyLight.intensity = tuning.keyIntensity;
+				rimLight.intensity = tuning.rimIntensity;
+			};
+
+			const saveTuning = () => {
+				try {
+					window.localStorage.setItem(guiStorageKey, JSON.stringify(tuning));
+				} catch {}
+				applyTuning();
+			};
+
+			applyTuning();
+
+				const onPointerMove = (event) => {
+				if (!hoverEnabled) return;
+				const rect = frame.getBoundingClientRect();
 				const relativeX = clampValue((event.clientX - rect.left) / rect.width, 0, 1);
 				const relativeY = clampValue((event.clientY - rect.top) / rect.height, 0, 1);
 				hoverTarget.x = easeHoverAxis((relativeX - 0.5) * 2);
@@ -143,39 +399,141 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				hoverTarget.y = 0;
 			};
 
-			if (hoverEnabled && monitorWrap) {
-				monitorWrap.addEventListener("pointermove", onPointerMove, { passive: true });
-				monitorWrap.addEventListener("pointerleave", resetPointer);
+			if (hoverEnabled) {
+				frame.addEventListener("pointermove", onPointerMove, { passive: true });
+				frame.addEventListener("pointerleave", resetPointer);
 			}
 
-			const render = () => {
+			const resize = () => {
+				const width = Math.max(1, sceneHost.clientWidth);
+				const height = Math.max(1, sceneHost.clientHeight);
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+				renderer.setSize(width, height, false);
+
+				const distance = camera.position.z - backdrop.position.z;
+				const visibleHeight =
+					2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
+				const visibleWidth = visibleHeight * camera.aspect;
+
+				backdrop.scale.set(visibleWidth * 0.98, visibleHeight * 0.96, 1);
+				backdropGlow.scale.set(visibleWidth * 0.62, visibleHeight * 0.5, 1);
+			};
+
+			const resizeObserver = new ResizeObserver(resize);
+			resizeObserver.observe(sceneHost);
+			resize();
+
+			if (shouldShowGui) {
+				const { default: GUI } = await import("https://esm.sh/lil-gui@0.19.2");
+				gui = new GUI({ title: "Projects Monitor 3D" });
+				gui.domElement.style.zIndex = "120";
+				gui.domElement.setAttribute("data-lenis-prevent", "true");
+
+				const toastTuning = async (message) => {
+					const output = JSON.stringify(tuning, null, 2);
+					console.log("ProjectsMonitor tuning", output);
+					try {
+						await navigator.clipboard?.writeText(output);
+					} catch {}
+
+					window.clearTimeout(guiToastTimer);
+					let toast = document.querySelector("[data-projects-monitor-gui-toast]");
+					if (!toast) {
+						toast = document.createElement("pre");
+						toast.dataset.projectsMonitorGuiToast = "true";
+						toast.style.cssText = [
+							"position:fixed",
+							"right:1rem",
+							"bottom:1rem",
+							"z-index:10000",
+							"max-width:min(34rem,calc(100vw - 2rem))",
+							"max-height:42vh",
+							"overflow:auto",
+							"margin:0",
+							"padding:0.9rem 1rem",
+							"border:1px solid rgba(71,223,155,0.45)",
+							"background:rgba(0,0,0,0.92)",
+							"color:#d9fff0",
+							"font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace",
+							"white-space:pre-wrap",
+						].join(";");
+						document.body.appendChild(toast);
+					}
+					toast.textContent = `${message}\n${output}`;
+					guiToastTimer = window.setTimeout(() => {
+						toast.remove();
+					}, 12000);
+				};
+
+				const guiState = {
+					print: () => toastTuning("Valores copiados al portapapeles:"),
+					reset: () => {
+						Object.assign(tuning, tuningDefaults);
+						try {
+							window.localStorage.removeItem(guiStorageKey);
+						} catch {}
+						applyTuning();
+						const controllers =
+							typeof gui?.controllersRecursive === "function"
+								? gui.controllersRecursive()
+								: gui?.controllers || [];
+						controllers.forEach((controller) => controller.updateDisplay());
+					},
+				};
+
+				const addPersisted = (folder, key, min, max, step, label) =>
+					folder.add(tuning, key, min, max, step).name(label).onChange(saveTuning);
+
+				const layoutFolder = gui.addFolder("Layout");
+				addPersisted(layoutFolder, "wrapOffsetY", -160, 160, 1, "offset Y");
+				addPersisted(layoutFolder, "wrapOffsetX", -160, 160, 1, "offset X");
+				addPersisted(layoutFolder, "monitorScale", 0.7, 1.3, 0.01, "scale");
+
+				const cameraFolder = gui.addFolder("Camera");
+				addPersisted(cameraFolder, "cameraY", -2, 2, 0.01, "camera Y");
+				addPersisted(cameraFolder, "cameraZ", 9, 18, 0.01, "camera Z");
+				addPersisted(cameraFolder, "lookAtY", -3, 2, 0.01, "lookAt Y");
+				addPersisted(cameraFolder, "lookAtZ", -2, 2, 0.01, "lookAt Z");
+
+				const rigFolder = gui.addFolder("Monitor");
+				addPersisted(rigFolder, "rigRotX", -0.4, 0.6, 0.005, "rot X");
+				addPersisted(rigFolder, "rigRotY", -0.8, 0.2, 0.005, "rot Y");
+				addPersisted(rigFolder, "rigRotZ", -0.2, 0.2, 0.005, "rot Z");
+				addPersisted(rigFolder, "rigPosX", -2, 2, 0.01, "pos X");
+				addPersisted(rigFolder, "rigPosY", -2, 2, 0.01, "pos Y");
+
+				const hoverFolder = gui.addFolder("Hover");
+				addPersisted(hoverFolder, "hoverRotX", 0, 0.4, 0.005, "hover rot X");
+				addPersisted(hoverFolder, "hoverRotY", 0, 0.4, 0.005, "hover rot Y");
+				addPersisted(hoverFolder, "hoverRotZ", -0.12, 0.12, 0.005, "hover rot Z");
+				addPersisted(hoverFolder, "hoverShiftX", -1.2, 1.2, 0.01, "hover pos X");
+				addPersisted(hoverFolder, "hoverShiftY", -1.2, 1.2, 0.01, "hover pos Y");
+				addPersisted(hoverFolder, "cameraHoverX", -1, 1, 0.01, "camera hover X");
+				addPersisted(hoverFolder, "cameraHoverY", -1, 1, 0.01, "camera hover Y");
+				addPersisted(hoverFolder, "hoverEase", 0.02, 0.2, 0.005, "smooth");
+
+				const motionFolder = gui.addFolder("Pantalla");
+				addPersisted(motionFolder, "floatAmount", 0, 0.08, 0.001, "float amount");
+				addPersisted(motionFolder, "floatSpeed", 0, 3, 0.01, "float speed");
+				addPersisted(motionFolder, "blendShift", 0, 0.4, 0.005, "blend shift");
+				addPersisted(motionFolder, "blendScale", 0, 0.08, 0.001, "blend scale");
+
+				const lightFolder = gui.addFolder("Luces");
+				addPersisted(lightFolder, "ambientIntensity", 0, 3, 0.01, "ambient");
+				addPersisted(lightFolder, "hemiIntensity", 0, 3, 0.01, "hemisphere");
+				addPersisted(lightFolder, "keyIntensity", 0, 4, 0.01, "key");
+				addPersisted(lightFolder, "rimIntensity", 0, 14, 0.1, "rim");
+
+				gui.add(guiState, "print").name("imprimir valores");
+				gui.add(guiState, "reset").name("reset");
+			}
+
+			const render = (time) => {
 				const projectsProgress =
 					parseFloat(getComputedStyle(stage).getPropertyValue("--projects-progress")) || 0;
 
-				hoverState.x += (hoverTarget.x - hoverState.x) * 0.09;
-				hoverState.y += (hoverTarget.y - hoverState.y) * 0.09;
-
-				if (monitor) {
-					const hoverDepth = Math.max(Math.abs(hoverState.x), Math.abs(hoverState.y));
-					monitor.style.setProperty("--monitor-tilt-x", `${(hoverState.x * 6.5).toFixed(3)}deg`);
-					monitor.style.setProperty("--monitor-tilt-y", `${(hoverState.y * -5).toFixed(3)}deg`);
-					monitor.style.setProperty("--monitor-shift-x", `${(hoverState.x * -8).toFixed(3)}px`);
-					monitor.style.setProperty("--monitor-shift-y", `${(hoverState.y * -6).toFixed(3)}px`);
-					monitor.style.setProperty("--monitor-hover-scale", (hoverDepth * 0.012).toFixed(4));
-				}
-
-				if (
-					Math.abs(projectsProgress - lastValue) < 0.0008 &&
-					Math.abs(hoverTarget.x - hoverState.x) < 0.001 &&
-					Math.abs(hoverTarget.y - hoverState.y) < 0.001
-				) {
-					frameId = window.requestAnimationFrame(render);
-					return;
-				}
-
-				lastValue = projectsProgress;
-
-				const maxIndex = Math.max(0, slides.length - 1);
+				const maxIndex = Math.max(0, projectEntries.length - 1);
 				let floatIndex = 0;
 				let activeIndex = 0;
 
@@ -183,8 +541,8 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					const scaledProgress = clampValue(projectsProgress * maxIndex, 0, maxIndex);
 					const segmentIndex = Math.min(maxIndex - 1, Math.floor(scaledProgress));
 					const segmentProgress = scaledProgress - segmentIndex;
-					const transitionStart = 0.42;
-					const transitionEnd = 0.78;
+					const transitionStart = 0.64;
+					const transitionEnd = 0.84;
 					const transitionProgress = clampValue(
 						(segmentProgress - transitionStart) / (transitionEnd - transitionStart),
 						0,
@@ -198,26 +556,54 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					activeIndex =
 						projectsProgress >= 0.999
 							? maxIndex
-							: segmentProgress >= 0.68
+							: segmentProgress >= 0.82
 								? Math.min(maxIndex, segmentIndex + 1)
 								: segmentIndex;
 				}
 
-				slides.forEach((slide, index) => {
-					const offset = index - floatIndex;
-					const absOffset = Math.min(Math.abs(offset), 2.2);
-					const opacity = clampValue(1 - absOffset * 1.12, 0, 1);
-					const scale = 1 - absOffset * 0.14;
-					const translateX = offset * 14;
-					const translateY = absOffset * 7;
-					const translateZ = -absOffset * 240;
-					const rotateY = offset * -22;
+				const lowerIndex = Math.min(maxIndex, Math.floor(floatIndex));
+				const upperIndex = Math.min(maxIndex, lowerIndex + 1);
+				const blend = clampValue(floatIndex - lowerIndex, 0, 1);
 
-					slide.style.opacity = opacity.toFixed(3);
-					slide.style.transform = `translate3d(${translateX}%, ${translateY}%, ${translateZ}px) scale(${scale}) rotateY(${rotateY}deg)`;
-					slide.style.filter = `blur(${absOffset * 6}px) saturate(${1 - absOffset * 0.35}) brightness(${1 - absOffset * 0.1})`;
-					slide.style.zIndex = `${Math.round(100 - absOffset * 12)}`;
-				});
+				if (screenBaseMaterial.map !== textures[lowerIndex]) {
+					screenBaseMaterial.map = textures[lowerIndex];
+					screenBaseMaterial.needsUpdate = true;
+				}
+
+				if (screenOverlayMaterial.map !== textures[upperIndex]) {
+					screenOverlayMaterial.map = textures[upperIndex];
+					screenOverlayMaterial.needsUpdate = true;
+				}
+
+				screenOverlayMaterial.opacity = blend;
+				screenBase.position.x = blend * -tuning.blendShift;
+				screenOverlay.position.x = (1 - blend) * tuning.blendShift;
+				screenBase.scale.setScalar(1 - blend * tuning.blendScale);
+				screenOverlay.scale.setScalar((1 - tuning.blendScale) + blend * tuning.blendScale);
+
+				hoverState.x += (hoverTarget.x - hoverState.x) * tuning.hoverEase;
+				hoverState.y += (hoverTarget.y - hoverState.y) * tuning.hoverEase;
+
+				const elapsed = time * 0.001;
+				rig.rotation.x =
+					tuning.rigRotX +
+					hoverState.y * tuning.hoverRotX +
+					Math.sin(elapsed * tuning.floatSpeed) * tuning.floatAmount;
+				rig.rotation.y = tuning.rigRotY + hoverState.x * tuning.hoverRotY;
+				rig.rotation.z = tuning.rigRotZ + hoverState.x * tuning.hoverRotZ;
+				rig.position.x =
+					tuning.rigPosX + tuning.wrapOffsetX * 0.01 + hoverState.x * tuning.hoverShiftX;
+				rig.position.y =
+					tuning.rigPosY - tuning.wrapOffsetY * 0.01 + hoverState.y * tuning.hoverShiftY;
+				rig.scale.setScalar(tuning.monitorScale);
+				backdropGlow.position.x = hoverState.x * -1.65;
+				backdropGlow.position.y = -0.4 + hoverState.y * -0.78;
+
+				camera.position.x += ((hoverState.x * tuning.cameraHoverX) - camera.position.x) * 0.05;
+				camera.position.y +=
+					((tuning.cameraY + hoverState.y * tuning.cameraHoverY) - camera.position.y) * 0.05;
+				camera.position.z += (tuning.cameraZ - camera.position.z) * 0.05;
+				camera.lookAt(0, tuning.lookAtY, tuning.lookAtZ);
 
 				copies.forEach((copy, index) => {
 					const offset = index - floatIndex;
@@ -230,34 +616,72 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					copy.style.pointerEvents = index === activeIndex ? "auto" : "none";
 				});
 
-				const activeCopy = copies[activeIndex];
-				const activeSlide = slides[activeIndex];
-
 				if (currentLabel) {
 					currentLabel.textContent = String(activeIndex + 1).padStart(2, "0");
 				}
 
 				if (roleLabel) {
-					roleLabel.textContent = activeSlide?.dataset.roleLine ?? "";
+					roleLabel.textContent = projectEntries[activeIndex]?.roleLine ?? "";
 				}
 
 				if (yearLabel) {
-					yearLabel.textContent = activeSlide?.dataset.year ?? "";
+					yearLabel.textContent = String(projectEntries[activeIndex]?.year ?? "");
+				}
+
+				monitorLink.href = projectEntries[activeIndex]?.url ?? "#";
+				monitorLink.setAttribute(
+					"aria-label",
+					`Abrir proyecto ${projectEntries[activeIndex]?.title ?? "activo"}`
+				);
+
+				const progressDelta = Math.abs(projectsProgress - lastProgress);
+				lastProgress = projectsProgress;
+
+				renderer.render(scene, camera);
+
+				if (
+					progressDelta < 0.0008 &&
+					Math.abs(hoverTarget.x - hoverState.x) < 0.001 &&
+					Math.abs(hoverTarget.y - hoverState.y) < 0.001
+				) {
+					frameId = window.requestAnimationFrame(render);
+					return;
 				}
 
 				frameId = window.requestAnimationFrame(render);
 			};
 
-			render();
+			frameId = window.requestAnimationFrame(render);
 
 			window.addEventListener(
 				"pagehide",
 				() => {
 					window.cancelAnimationFrame(frameId);
-					if (hoverEnabled && monitorWrap) {
-						monitorWrap.removeEventListener("pointermove", onPointerMove);
-						monitorWrap.removeEventListener("pointerleave", resetPointer);
+					resizeObserver.disconnect();
+					if (hoverEnabled) {
+						frame.removeEventListener("pointermove", onPointerMove);
+						frame.removeEventListener("pointerleave", resetPointer);
 					}
+					gui?.destroy();
+					renderer.dispose();
+					screenGeometry.dispose();
+					shell.geometry.dispose();
+					bezel.geometry.dispose();
+					neck.geometry.dispose();
+					baseUpper.geometry.dispose();
+					baseLower.geometry.dispose();
+					floorShadow.geometry.dispose();
+					backdrop.geometry.dispose();
+					backdropGlow.geometry.dispose();
+					shellMaterial.dispose();
+					trimMaterial.dispose();
+					standMaterial.dispose();
+					glassMaterial.dispose();
+					backdropMaterial.dispose();
+					backdropGlow.material.dispose();
+					screenBaseMaterial.dispose();
+					screenOverlayMaterial.dispose();
+					glowTexture.dispose();
 				},
 				{ once: true }
 			);
@@ -441,125 +865,31 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		text-align: left;
 	}
 
-	.projects-monitor__monitor-wrap {
-		position: absolute;
-		inset: 5.3rem 11rem 10rem 11rem;
-		display: grid;
-		place-items: center;
-		perspective: 1800px;
-	}
-
-	.projects-monitor__monitor {
-		--monitor-tilt-x: 0deg;
-		--monitor-tilt-y: 0deg;
-		--monitor-shift-x: 0px;
-		--monitor-shift-y: 0px;
-		--monitor-hover-scale: 0;
-		position: relative;
-		width: min(100%, 48rem);
-		transform-style: preserve-3d;
-		transform:
-			translate3d(var(--monitor-shift-x), var(--monitor-shift-y), 0)
-			rotateX(calc(8deg + var(--monitor-tilt-y)))
-			rotateY(calc(-11deg + var(--monitor-tilt-x)))
-			scale(calc(1 + var(--monitor-hover-scale)))
-			rotateZ(1deg);
-		transition: filter 220ms ease;
-		will-change: transform;
-		filter: drop-shadow(0 32px 80px rgba(0, 0, 0, 0.48));
-	}
-
-	.projects-monitor__bezel {
-		position: relative;
-		padding: 1rem 1rem 1.2rem;
-		border-radius: 1.9rem;
-		background:
-			linear-gradient(180deg, rgba(73, 69, 67, 0.95), rgba(22, 21, 20, 0.98)),
-			linear-gradient(140deg, rgba(255, 255, 255, 0.1), transparent 36%);
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-			inset 0 0 30px rgba(255, 255, 255, 0.02);
-	}
-
-	.projects-monitor__bezel::before {
-		content: "";
-		position: absolute;
-		inset: 0.5rem;
-		border-radius: 1.45rem;
-		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-		pointer-events: none;
-	}
-
-	.projects-monitor__screen {
-		position: relative;
-		aspect-ratio: 16 / 10;
-		border-radius: 1rem;
-		overflow: hidden;
-		background:
-			linear-gradient(180deg, rgba(8, 10, 14, 1), rgba(2, 2, 4, 1));
-		transform: translateZ(24px);
-	}
-
-	.projects-monitor__slide,
-	.projects-monitor__screen-glow {
+	.projects-monitor__monitor-stage {
 		position: absolute;
 		inset: 0;
+		z-index: 1;
+		filter: drop-shadow(0 34px 80px rgba(0, 0, 0, 0.42));
 	}
 
-	.projects-monitor__slide {
+	.projects-monitor__monitor-stage :global(canvas) {
 		display: block;
-		transform-origin: center center;
-		transition:
-			opacity 220ms ease,
-			filter 220ms ease;
-	}
-
-	.projects-monitor__slide img {
 		width: 100%;
 		height: 100%;
-		object-fit: cover;
 	}
 
-	.projects-monitor__screen-glow {
-		background:
-			radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.18), transparent 30%),
-			linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 22%, rgba(0, 0, 0, 0.18));
-		pointer-events: none;
-	}
-
-	.projects-monitor__stand {
-		position: relative;
-		width: 32%;
-		margin: -0.35rem auto 0;
-		transform: translateZ(-2px);
-	}
-
-	.projects-monitor__stand-neck {
-		width: 26%;
-		height: 3.8rem;
-		margin: 0 auto;
-		border-radius: 0 0 1rem 1rem;
-		background:
-			linear-gradient(180deg, rgba(77, 73, 69, 0.96), rgba(21, 21, 20, 1));
-		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-	}
-
-	.projects-monitor__stand-base {
-		height: 1.9rem;
-		margin-top: -0.15rem;
-		border-radius: 1rem 1rem 1.3rem 1.3rem;
-		background:
-			linear-gradient(180deg, rgba(56, 53, 50, 0.98), rgba(14, 13, 12, 1));
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-			0 14px 30px rgba(0, 0, 0, 0.34);
+	.projects-monitor__monitor-link {
+		position: absolute;
+		inset: 13% 22% 21%;
+		z-index: 2;
+		border-radius: 1rem;
 	}
 
 	.projects-monitor__copy-stack {
 		position: absolute;
 		left: 2.2rem;
 		right: 2.2rem;
-		bottom: 5.9rem;
+		bottom: 5.1rem;
 		min-height: 8rem;
 		z-index: 4;
 		pointer-events: none;
@@ -658,10 +988,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	}
 
 	@media (max-width: 1200px) {
-		.projects-monitor__monitor-wrap {
-			inset: 5.4rem 6rem 11.5rem 6.5rem;
-		}
-
 		.projects-monitor__copy h3 {
 			font-size: clamp(3.2rem, 8vw, 6.8rem);
 		}
@@ -701,14 +1027,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			max-width: min(16rem, 34vw);
 		}
 
-		.projects-monitor__monitor-wrap {
-			inset: 5.3rem 1.8rem 11.2rem;
-		}
-
 		.projects-monitor__copy-stack {
 			left: 1.2rem;
 			right: 1.2rem;
-			bottom: 5.4rem;
+			bottom: 4.8rem;
 		}
 
 		.projects-monitor__copy-backdrop {
@@ -786,38 +1108,14 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			font-size: 0.72rem;
 		}
 
-		.projects-monitor__monitor-wrap {
-			inset: 4.45rem 0.75rem 9.5rem;
-		}
-
-		.projects-monitor__monitor {
-			transform:
-				rotateX(7deg)
-				rotateY(-8deg)
-				rotateZ(1deg);
-		}
-
-		.projects-monitor__bezel {
-			padding: 0.7rem 0.7rem 0.85rem;
-			border-radius: 1.2rem;
-		}
-
-		.projects-monitor__screen {
-			border-radius: 0.7rem;
-		}
-
-		.projects-monitor__stand-neck {
-			height: 2.7rem;
-		}
-
-		.projects-monitor__stand-base {
-			height: 1.45rem;
+		.projects-monitor__monitor-link {
+			inset: 18% 10% 25%;
 		}
 
 		.projects-monitor__copy-stack {
 			left: 0.9rem;
 			right: 0.9rem;
-			bottom: 4.5rem;
+			bottom: 4rem;
 			min-height: 6.2rem;
 		}
 
