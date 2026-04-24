@@ -2,14 +2,9 @@
 
 <script type="module" is:inline>
 	import * as THREE from 'https://esm.sh/three@0.161.0';
-	import { EffectComposer } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/EffectComposer.js';
-	import { RenderPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/RenderPass.js';
-	import { ShaderPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/ShaderPass.js';
-	import { UnrealBloomPass } from 'https://esm.sh/three@0.161.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 	const containers = document.querySelectorAll('[data-scroll-space-scene]');
 	const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-	const guiStorageKey = 'scroll-space-3d-tuning-v1';
 
 	const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 	const lerp = (start, end, progress) => start + (end - start) * progress;
@@ -17,47 +12,77 @@
 		const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
 		return t * t * (3 - 2 * t);
 	};
+	const HERO_GUI_ENABLED_KEY = 'gavila:hero-gui-enabled';
+	const HERO_GUI_TUNING_KEY = 'gavila:hero-tuning-v1';
 
-	function readSavedTuning() {
-		try {
-			return JSON.parse(window.localStorage.getItem(guiStorageKey) || '{}');
-		} catch {
-			return {};
-		}
+	const safeStorage = {
+		get(key) {
+			try {
+				return window.localStorage.getItem(key);
+			} catch {
+				return null;
+			}
+		},
+		set(key, value) {
+			try {
+				window.localStorage.setItem(key, value);
+			} catch {
+				// Debug-only persistence should never block the hero.
+			}
+		},
+		remove(key) {
+			try {
+				window.localStorage.removeItem(key);
+			} catch {
+				// Debug-only persistence should never block the hero.
+			}
+		},
+	};
+
+	function shouldEnableHeroGui() {
+		const params = new URLSearchParams(window.location.search);
+		const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+
+		return (
+			isLocalPreview ||
+			params.has('heroGui') ||
+			params.get('gui') === 'hero' ||
+			safeStorage.get(HERO_GUI_ENABLED_KEY) === 'true'
+		);
 	}
 
 	function makeTuningDefaults(isMobile) {
 		return {
 			vortexX: 6.62,
-			vortexY: 6.56,
+			vortexY: 2.64,
 			revealX: 50,
 			revealY: 44,
 			scrollStart: 0.46,
 			scrollEnd: 0.95,
 			headlineBaseRem: 3.15,
 			headlineScrollVh: 14,
-			particleSize: 0.15,
+			particleSize: 0.351,
 			particleToneMix: 1,
-			vortexOpenStart: 0.12,
+			vortexOpenStart: 0.284,
 			vortexOpenEnd: 0.45,
 			coreFinal: 11.5,
 			innerPush: 14,
 			latePush: 6.5,
 			depthPush: 0,
-			stretchStart: 0.1,
+			stretchStart: 0.393,
 			stretchPeak: 0.75,
-			streakBaseLength: 0.04,
+			streakBaseLength: 0.54,
 			streakMaxLength: 3,
 			stretchFadeStart: 0.43,
 			stretchFadeEnd: 1,
 			particleFadeStart: 0.62,
 			particleFadeEnd: 0.69,
-			projectRevealStart: 0.49,
-			projectRevealEnd: 0.69,
+			projectRevealStart: 0.536,
+			projectRevealEnd: 0.852,
 			projectRevealMax: 140,
-			projectRevealFeather: 21,
-			heroExitStart: 0.28,
-			heroExitEnd: 0.72,
+			projectRevealFeather: 20.8,
+			heroExitStart: 0.346,
+			heroExitEnd: 0.67,
 			projectsEnterStart: 0.52,
 			projectsEnterEnd: 0.78,
 			postprocessingEnabled: true,
@@ -71,8 +96,30 @@
 			chromaFadeEnd: 0.76,
 			lenisEnabled: true,
 			lenisLerp: 0.18,
-			lenisWheelMultiplier: 0.58,
+			lenisWheelMultiplier: 0.596,
 		};
+	}
+
+	function snapshotTuning(tuning) {
+		return Object.fromEntries(
+			Object.entries(tuning).filter(([, value]) => typeof value === 'number' || typeof value === 'boolean'),
+		);
+	}
+
+	function getInitialTuning(isMobile, useStoredTuning) {
+		const defaults = makeTuningDefaults(isMobile);
+		if (!useStoredTuning) return defaults;
+
+		try {
+			const stored = JSON.parse(safeStorage.get(HERO_GUI_TUNING_KEY) ?? '{}');
+			return { ...defaults, ...stored };
+		} catch {
+			return defaults;
+		}
+	}
+
+	function saveHeroTuning(tuning) {
+		safeStorage.set(HERO_GUI_TUNING_KEY, JSON.stringify(snapshotTuning(tuning)));
 	}
 
 	const ChromaticAberrationShader = {
@@ -164,6 +211,8 @@
 		const stage = container.closest('[data-z-space]');
 		if (!stage) return;
 
+		const isMobile = window.innerWidth < 768;
+		const pixelRatioCap = isMobile ? 1.2 : 1.55;
 		const scene = new THREE.Scene();
 		scene.fog = new THREE.FogExp2(0x000000, 0.018);
 
@@ -172,36 +221,57 @@
 
 		const renderer = new THREE.WebGLRenderer({
 			alpha: true,
-			antialias: true,
+			antialias: !isMobile,
 			powerPreference: 'high-performance',
 		});
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
+		renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
 		renderer.setClearColor(0x000000, 0);
 		container.appendChild(renderer.domElement);
 
-		const isMobile = window.innerWidth < 768;
-		const tuningDefaults = makeTuningDefaults(isMobile);
-		const savedTuning = readSavedTuning();
-		const tuning = {
-			...tuningDefaults,
-			...Object.fromEntries(Object.entries(savedTuning).filter(([key]) => key in tuningDefaults)),
+		const heroGuiEnabled = shouldEnableHeroGui();
+		const tuning = getInitialTuning(isMobile, heroGuiEnabled);
+		let composer = null;
+		let bloomPass = null;
+		let chromaPass = null;
+		let postprocessingImportPromise = null;
+		let gui = null;
+
+		const ensurePostprocessing = async () => {
+			if (composer || prefersReducedMotion) return;
+			postprocessingImportPromise ??= Promise.all([
+				import('https://esm.sh/three@0.161.0/examples/jsm/postprocessing/EffectComposer.js'),
+				import('https://esm.sh/three@0.161.0/examples/jsm/postprocessing/RenderPass.js'),
+				import('https://esm.sh/three@0.161.0/examples/jsm/postprocessing/ShaderPass.js'),
+				import('https://esm.sh/three@0.161.0/examples/jsm/postprocessing/UnrealBloomPass.js'),
+			]);
+
+			const [{ EffectComposer }, { RenderPass }, { ShaderPass }, { UnrealBloomPass }] = await postprocessingImportPromise;
+			if (composer) return;
+
+			composer = new EffectComposer(renderer);
+			composer.setPixelRatio?.(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.35));
+			const renderPass = new RenderPass(scene, camera);
+			const width = Math.max(1, container.clientWidth);
+			const height = Math.max(1, container.clientHeight);
+			bloomPass = new UnrealBloomPass(
+				new THREE.Vector2(width, height),
+				tuning.bloomStrength,
+				tuning.bloomRadius,
+				tuning.bloomThreshold,
+			);
+			chromaPass = new ShaderPass(ChromaticAberrationShader);
+			chromaPass.enabled = false;
+			composer.addPass(renderPass);
+			composer.addPass(bloomPass);
+			composer.addPass(chromaPass);
+			composer.setSize(width, height);
 		};
-		const composer = new EffectComposer(renderer);
-		composer.setPixelRatio?.(Math.min(window.devicePixelRatio, isMobile ? 1.15 : 1.45));
-		const renderPass = new RenderPass(scene, camera);
-		const bloomPass = new UnrealBloomPass(
-			new THREE.Vector2(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight)),
-			tuning.bloomStrength,
-			tuning.bloomRadius,
-			tuning.bloomThreshold,
-		);
-		const chromaPass = new ShaderPass(ChromaticAberrationShader);
-		chromaPass.enabled = false;
-		composer.addPass(renderPass);
-		composer.addPass(bloomPass);
-		composer.addPass(chromaPass);
+
+		if (tuning.postprocessingEnabled && !prefersReducedMotion) {
+			await ensurePostprocessing();
+		}
 		const particleSprite = makeParticleSprite();
-		const particleCount = isMobile ? 2800 : 5600;
+		const particleCount = isMobile ? 1500 : 3600;
 		const positions = new Float32Array(particleCount * 3);
 		const colors = new Float32Array(particleCount * 3);
 		const streakPositions = new Float32Array(particleCount * 2 * 3);
@@ -291,6 +361,8 @@
 		const pointerTarget = { x: 0, y: 0 };
 		const state = { progress: 0, targetProgress: 0, rawProgress: 0 };
 		let frameId = 0;
+		let isSceneVisible = true;
+		let visibilityObserver = null;
 		let lenis = null;
 		let lenisRafId = 0;
 		let lenisSetupToken = 0;
@@ -325,6 +397,7 @@
 			stage.style.setProperty('--projects-reveal-x', `${tuning.revealX.toFixed(3)}%`);
 			stage.style.setProperty('--projects-reveal-y', `${tuning.revealY.toFixed(3)}%`);
 			stage.dataset.activePanel = progress > 0.74 ? 'projects' : 'hero';
+			stage.dispatchEvent(new CustomEvent('z-space-progress'));
 		};
 
 		const updateScrollProgress = () => {
@@ -389,11 +462,161 @@
 			lenisRafId = window.requestAnimationFrame(raf);
 		};
 
+		const setupHeroGui = async () => {
+			if (!heroGuiEnabled || gui) return;
+
+			try {
+				const guiModule = await import('https://esm.sh/lil-gui@0.20.0');
+				const GUI = guiModule.GUI ?? guiModule.default;
+				const controllers = [];
+				const refreshFromGui = (persist = true) => {
+					updateScrollProgress();
+					updatePanelVars(state.targetProgress);
+					startAnimation();
+					if (persist) saveHeroTuning(tuning);
+				};
+				const track = (controller) => {
+					controllers.push(controller);
+					return controller;
+				};
+				const addNumber = (folder, property, min, max, step, label = property) => {
+					track(folder.add(tuning, property, min, max, step).name(label).onChange(() => refreshFromGui()));
+				};
+				const addToggle = (folder, property, label = property, onChange = refreshFromGui) => {
+					track(folder.add(tuning, property).name(label).onChange(onChange));
+				};
+				const updateDisplays = () => controllers.forEach((controller) => controller.updateDisplay());
+				const resetTuning = () => {
+					Object.assign(tuning, makeTuningDefaults(isMobile));
+					safeStorage.remove(HERO_GUI_TUNING_KEY);
+					updateDisplays();
+					setupLenis();
+					if (tuning.postprocessingEnabled) {
+						ensurePostprocessing().then(() => startAnimation());
+					}
+					refreshFromGui(false);
+				};
+				const copyTuning = () => {
+					const payload = JSON.stringify(snapshotTuning(tuning), null, 2);
+					navigator.clipboard?.writeText(payload).catch(() => undefined);
+					console.info('Hero tuning snapshot:', payload);
+				};
+
+				safeStorage.set(HERO_GUI_ENABLED_KEY, 'true');
+				gui = new GUI({ title: 'Hero controls', width: 340 });
+				gui.domElement.classList.add('hero-debug-gui');
+
+				const layoutFolder = gui.addFolder('Layout');
+				addNumber(layoutFolder, 'vortexX', -12, 12, 0.01, 'vortex x');
+				addNumber(layoutFolder, 'vortexY', -8, 10, 0.01, 'vortex y');
+				addNumber(layoutFolder, 'revealX', 0, 100, 0.1, 'reveal x');
+				addNumber(layoutFolder, 'revealY', 0, 100, 0.1, 'reveal y');
+				addNumber(layoutFolder, 'headlineBaseRem', 0, 8, 0.01, 'headline offset');
+				addNumber(layoutFolder, 'headlineScrollVh', 0, 32, 0.1, 'headline scroll');
+
+				const scrollFolder = gui.addFolder('Scroll timing');
+				addNumber(scrollFolder, 'scrollStart', 0, 0.95, 0.001, 'start');
+				addNumber(scrollFolder, 'scrollEnd', 0.05, 1, 0.001, 'end');
+				addNumber(scrollFolder, 'heroExitStart', 0, 1, 0.001, 'hero exit start');
+				addNumber(scrollFolder, 'heroExitEnd', 0, 1, 0.001, 'hero exit end');
+				addNumber(scrollFolder, 'projectsEnterStart', 0, 1, 0.001, 'projects start');
+				addNumber(scrollFolder, 'projectsEnterEnd', 0, 1, 0.001, 'projects end');
+
+				const particleFolder = gui.addFolder('Particles');
+				addNumber(particleFolder, 'particleSize', 0.02, 0.8, 0.001, 'size');
+				addNumber(particleFolder, 'particleToneMix', 0, 1, 0.001, 'tone mix');
+				addNumber(particleFolder, 'vortexOpenStart', 0, 1, 0.001, 'open start');
+				addNumber(particleFolder, 'vortexOpenEnd', 0, 1, 0.001, 'open end');
+				addNumber(particleFolder, 'coreFinal', 0, 28, 0.01, 'core radius');
+				addNumber(particleFolder, 'innerPush', 0, 36, 0.01, 'inner push');
+				addNumber(particleFolder, 'latePush', 0, 24, 0.01, 'late push');
+				addNumber(particleFolder, 'depthPush', -20, 30, 0.01, 'depth push');
+				addNumber(particleFolder, 'streakBaseLength', 0, 1, 0.001, 'streak base');
+				addNumber(particleFolder, 'streakMaxLength', 0, 8, 0.01, 'streak max');
+
+				const revealFolder = gui.addFolder('Reveal and fade');
+				addNumber(revealFolder, 'stretchStart', 0, 1, 0.001, 'stretch start');
+				addNumber(revealFolder, 'stretchPeak', 0, 1, 0.001, 'stretch peak');
+				addNumber(revealFolder, 'stretchFadeStart', 0, 1, 0.001, 'stretch fade start');
+				addNumber(revealFolder, 'stretchFadeEnd', 0, 1, 0.001, 'stretch fade end');
+				addNumber(revealFolder, 'particleFadeStart', 0, 1, 0.001, 'particle fade start');
+				addNumber(revealFolder, 'particleFadeEnd', 0, 1, 0.001, 'particle fade end');
+				addNumber(revealFolder, 'projectRevealStart', 0, 1, 0.001, 'project reveal start');
+				addNumber(revealFolder, 'projectRevealEnd', 0, 1, 0.001, 'project reveal end');
+				addNumber(revealFolder, 'projectRevealMax', 0, 180, 0.1, 'project reveal max');
+				addNumber(revealFolder, 'projectRevealFeather', 0, 60, 0.1, 'project feather');
+
+				const fxFolder = gui.addFolder('FX');
+				addToggle(fxFolder, 'postprocessingEnabled', 'postprocessing', async () => {
+					if (tuning.postprocessingEnabled) {
+						await ensurePostprocessing();
+					}
+					refreshFromGui();
+				});
+				addNumber(fxFolder, 'bloomStrength', 0, 3, 0.001, 'bloom strength');
+				addNumber(fxFolder, 'bloomRadius', 0, 1, 0.001, 'bloom radius');
+				addNumber(fxFolder, 'bloomThreshold', 0, 1, 0.001, 'bloom threshold');
+				addNumber(fxFolder, 'chromaAmount', 0, 0.006, 0.00001, 'chroma amount');
+				addNumber(fxFolder, 'chromaStart', 0, 1, 0.001, 'chroma start');
+				addNumber(fxFolder, 'chromaPeak', 0, 1, 0.001, 'chroma peak');
+				addNumber(fxFolder, 'chromaFadeStart', 0, 1, 0.001, 'chroma fade start');
+				addNumber(fxFolder, 'chromaFadeEnd', 0, 1, 0.001, 'chroma fade end');
+
+				const smoothFolder = gui.addFolder('Smooth scroll');
+				addToggle(smoothFolder, 'lenisEnabled', 'lenis enabled', () => {
+					saveHeroTuning(tuning);
+					setupLenis();
+					refreshFromGui(false);
+				});
+				track(
+					smoothFolder
+						.add(tuning, 'lenisLerp', 0.02, 0.35, 0.001)
+						.name('lenis lerp')
+						.onFinishChange(() => {
+							saveHeroTuning(tuning);
+							setupLenis();
+						}),
+				);
+				track(
+					smoothFolder
+						.add(tuning, 'lenisWheelMultiplier', 0.1, 1.8, 0.001)
+						.name('wheel multiplier')
+						.onFinishChange(() => {
+							saveHeroTuning(tuning);
+							setupLenis();
+						}),
+				);
+
+				const actions = {
+					copyTuning,
+					resetTuning,
+					hideGui: () => {
+						gui?.destroy();
+						gui = null;
+					},
+				};
+				const actionsFolder = gui.addFolder('Actions');
+				actionsFolder.add(actions, 'copyTuning').name('copy tuning');
+				actionsFolder.add(actions, 'resetTuning').name('reset tuning');
+				actionsFolder.add(actions, 'hideGui').name('hide gui');
+				scrollFolder.close();
+				particleFolder.close();
+				revealFolder.close();
+				fxFolder.close();
+				smoothFolder.close();
+				actionsFolder.close();
+			} catch (error) {
+				console.warn('lil-gui could not be loaded for the hero controls.', error);
+			}
+		};
+
 		const resize = () => {
 			const { clientWidth, clientHeight } = container;
 			if (!clientWidth || !clientHeight) return;
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+			composer?.setPixelRatio?.(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.35));
 			renderer.setSize(clientWidth, clientHeight, false);
-			composer.setSize(clientWidth, clientHeight);
+			composer?.setSize(clientWidth, clientHeight);
 			camera.aspect = clientWidth / clientHeight;
 			camera.updateProjectionMatrix();
 			updateScrollProgress();
@@ -414,158 +637,29 @@
 		resize();
 		updatePanelVars(state.targetProgress);
 
-		let gui = null;
-		let guiState = null;
-		let guiToastTimer = 0;
-		const shouldShowGui =
-			window.location.search.includes('gui=1') ||
-			window.location.hostname === 'localhost' ||
-			window.location.hostname === '127.0.0.1';
-
-		const saveTuning = () => {
-			try {
-				window.localStorage.setItem(guiStorageKey, JSON.stringify(tuning));
-			} catch {}
-			updateScrollProgress();
-		};
-
-		const saveLenisTuning = () => {
-			saveTuning();
-			setupLenis();
-		};
-
-		if (shouldShowGui) {
-			const { default: GUI } = await import('https://esm.sh/lil-gui@0.19.2');
-			gui = new GUI({ title: 'Scroll Space 3D' });
-			gui.domElement.style.zIndex = '100';
-			gui.domElement.setAttribute('data-lenis-prevent', 'true');
-			const toastTuning = async (message) => {
-				const output = JSON.stringify(tuning, null, 2);
-				console.log('ScrollSpace3D tuning', output);
-				try {
-					await navigator.clipboard?.writeText(output);
-				} catch {}
-
-				window.clearTimeout(guiToastTimer);
-				let toast = document.querySelector('[data-scroll-space-gui-toast]');
-				if (!toast) {
-					toast = document.createElement('pre');
-					toast.dataset.scrollSpaceGuiToast = 'true';
-					toast.style.cssText = [
-						'position:fixed',
-						'right:1rem',
-						'bottom:1rem',
-						'z-index:10000',
-						'max-width:min(34rem,calc(100vw - 2rem))',
-						'max-height:42vh',
-						'overflow:auto',
-						'margin:0',
-						'padding:0.9rem 1rem',
-						'border:1px solid rgba(71,223,155,0.45)',
-						'background:rgba(0,0,0,0.92)',
-						'color:#d9fff0',
-						'font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace',
-						'white-space:pre-wrap',
-					].join(';');
-					document.body.appendChild(toast);
-				}
-				toast.textContent = `${message}\n${output}`;
-				guiToastTimer = window.setTimeout(() => {
-					toast.remove();
-				}, 12000);
-			};
-			guiState = {
-				rawScroll: Number(state.rawProgress.toFixed(3)),
-				scroll: Number(state.targetProgress.toFixed(3)),
-				print: () => toastTuning('Valores copiados al portapapeles:'),
-				reset: () => {
-					Object.assign(tuning, tuningDefaults);
-					try {
-						window.localStorage.removeItem(guiStorageKey);
-					} catch {}
-					refreshGui();
-					updateScrollProgress();
-					setupLenis();
-				},
-			};
-			const refreshGui = () => {
-				const controllers =
-					typeof gui?.controllersRecursive === 'function' ? gui.controllersRecursive() : gui?.controllers || [];
-				controllers.forEach((controller) => controller.updateDisplay());
-			};
-
-			const layoutFolder = gui.addFolder('Alineacion');
-			layoutFolder.add(guiState, 'rawScroll', 0, 1, 0.001).name('scroll pagina').listen().disable();
-			layoutFolder.add(guiState, 'scroll', 0, 1, 0.001).name('scroll animacion').listen().disable();
-			layoutFolder.add(tuning, 'scrollStart', 0, 0.85, 0.01).name('inicio animacion').onChange(saveTuning);
-			layoutFolder.add(tuning, 'scrollEnd', 0.15, 1, 0.01).name('fin animacion').onChange(saveTuning);
-			layoutFolder.add(tuning, 'vortexX', -8, 8, 0.01).name('vortex X').onChange(saveTuning);
-			layoutFolder.add(tuning, 'vortexY', -5, 7, 0.01).name('vortex Y').onChange(saveTuning);
-			layoutFolder.add(tuning, 'revealX', 32, 68, 0.1).name('reveal X %').onChange(saveTuning);
-			layoutFolder.add(tuning, 'revealY', 30, 62, 0.1).name('reveal Y %').onChange(saveTuning);
-			layoutFolder.add(tuning, 'headlineBaseRem', -1, 7, 0.01).name('titulo base rem').onChange(saveTuning);
-			layoutFolder.add(tuning, 'headlineScrollVh', 0, 14, 0.1).name('titulo scroll vh').onChange(saveTuning);
-
-			const vortexFolder = gui.addFolder('Vortex');
-			vortexFolder.add(tuning, 'particleSize', 0.05, 0.5, 0.01).name('particula size').onChange(saveTuning);
-			vortexFolder.add(tuning, 'particleToneMix', 0, 1, 0.01).name('variedad tono').onChange(saveTuning);
-			vortexFolder.add(tuning, 'vortexOpenStart', 0, 0.5, 0.01).name('apertura inicio').onChange(saveTuning);
-			vortexFolder.add(tuning, 'vortexOpenEnd', 0.45, 1, 0.01).name('apertura fin').onChange(saveTuning);
-			vortexFolder.add(tuning, 'coreFinal', 2, 12, 0.1).name('agujero final').onChange(saveTuning);
-			vortexFolder.add(tuning, 'innerPush', 0, 14, 0.1).name('empuje interno').onChange(saveTuning);
-			vortexFolder.add(tuning, 'latePush', 0, 8, 0.1).name('empuje final').onChange(saveTuning);
-			vortexFolder.add(tuning, 'depthPush', 0, 5, 0.05).name('profundidad').onChange(saveTuning);
-
-			const streakFolder = gui.addFolder('Estelas');
-			streakFolder.add(tuning, 'streakBaseLength', 0, 0.8, 0.01).name('largo base').onChange(saveTuning);
-			streakFolder.add(tuning, 'streakMaxLength', 0.35, 3, 0.01).name('largo max').onChange(saveTuning);
-			streakFolder.add(tuning, 'stretchStart', 0, 0.45, 0.01).name('inicio').onChange(saveTuning);
-			streakFolder.add(tuning, 'stretchPeak', 0.15, 0.75, 0.01).name('max').onChange(saveTuning);
-			streakFolder.add(tuning, 'stretchFadeStart', 0.3, 0.9, 0.01).name('fade inicio').onChange(saveTuning);
-			streakFolder.add(tuning, 'stretchFadeEnd', 0.45, 1, 0.01).name('fade fin').onChange(saveTuning);
-			streakFolder.add(tuning, 'particleFadeStart', 0.3, 0.9, 0.01).name('particulas fade inicio').onChange(saveTuning);
-			streakFolder.add(tuning, 'particleFadeEnd', 0.45, 1, 0.01).name('particulas fade fin').onChange(saveTuning);
-
-			const revealFolder = gui.addFolder('Reveal proyectos');
-			revealFolder.add(tuning, 'projectRevealStart', 0.2, 0.8, 0.01).name('reveal inicio').onChange(saveTuning);
-			revealFolder.add(tuning, 'projectRevealEnd', 0.45, 1, 0.01).name('reveal fin').onChange(saveTuning);
-			revealFolder.add(tuning, 'projectRevealMax', 80, 220, 1).name('radio max %').onChange(saveTuning);
-			revealFolder.add(tuning, 'projectRevealFeather', 0, 40, 1).name('borde suave').onChange(saveTuning);
-			revealFolder.add(tuning, 'projectsEnterStart', 0.4, 0.9, 0.01).name('entrada inicio').onChange(saveTuning);
-			revealFolder.add(tuning, 'projectsEnterEnd', 0.6, 1, 0.01).name('entrada fin').onChange(saveTuning);
-
-			const postFolder = gui.addFolder('Post FX');
-			postFolder.add(tuning, 'postprocessingEnabled').name('activo').onChange(saveTuning);
-			postFolder.add(tuning, 'bloomStrength', 0, 1.2, 0.01).name('bloom fuerza').onChange(saveTuning);
-			postFolder.add(tuning, 'bloomRadius', 0, 1, 0.01).name('bloom radio').onChange(saveTuning);
-			postFolder.add(tuning, 'bloomThreshold', 0, 1, 0.01).name('bloom umbral').onChange(saveTuning);
-			postFolder.add(tuning, 'chromaAmount', 0, 0.008, 0.0001).name('chroma max').onChange(saveTuning);
-			postFolder.add(tuning, 'chromaStart', 0, 0.6, 0.01).name('chroma inicio').onChange(saveTuning);
-			postFolder.add(tuning, 'chromaPeak', 0.1, 0.8, 0.01).name('chroma pico').onChange(saveTuning);
-			postFolder.add(tuning, 'chromaFadeStart', 0.3, 0.9, 0.01).name('chroma fade inicio').onChange(saveTuning);
-			postFolder.add(tuning, 'chromaFadeEnd', 0.45, 1, 0.01).name('chroma fade fin').onChange(saveTuning);
-
-			const scrollFolder = gui.addFolder('Scroll suave');
-			scrollFolder.add(tuning, 'lenisEnabled').name('activo').onChange(saveLenisTuning);
-			scrollFolder.add(tuning, 'lenisLerp', 0.03, 0.22, 0.01).name('lerp').onChange(saveLenisTuning);
-			scrollFolder.add(tuning, 'lenisWheelMultiplier', 0.3, 1.5, 0.01).name('wheel speed').onChange(saveLenisTuning);
-
-			gui.add(guiState, 'print').name('imprimir valores');
-			gui.add(guiState, 'reset').name('reset');
-		}
-
 		setupLenis();
 
+		const startAnimation = () => {
+			if (!frameId) {
+				frameId = window.requestAnimationFrame(animate);
+			}
+		};
+
+		const stopAnimation = () => {
+			if (frameId) {
+				window.cancelAnimationFrame(frameId);
+				frameId = 0;
+			}
+		};
+
 		const animate = (time) => {
-			frameId = window.requestAnimationFrame(animate);
+			frameId = 0;
+			if (!isSceneVisible) return;
+
 			const elapsed = time * 0.001;
 			const progressEase = prefersReducedMotion ? 1 : 0.085;
 
 			state.progress += (state.targetProgress - state.progress) * progressEase;
-			if (guiState) {
-				guiState.rawScroll = Number(state.rawProgress.toFixed(3));
-				guiState.scroll = Number(state.targetProgress.toFixed(3));
-			}
 			pointer.x += (pointerTarget.x - pointer.x) * 0.045;
 			pointer.y += (pointerTarget.y - pointer.y) * 0.045;
 
@@ -706,38 +800,61 @@
 					: smoothstep(tuning.chromaStart, Math.max(tuning.chromaPeak, tuning.chromaStart + 0.01), state.progress);
 			const chromaPulse =
 				chromaEnter * (1 - smoothstep(tuning.chromaFadeStart, tuning.chromaFadeEnd, state.progress));
-			const postprocessingActive = tuning.postprocessingEnabled && !prefersReducedMotion;
-
-			bloomPass.enabled = postprocessingActive;
-			bloomPass.strength = tuning.bloomStrength * lerp(0.82, 1.18, fxStretch);
-			bloomPass.radius = tuning.bloomRadius;
-			bloomPass.threshold = tuning.bloomThreshold;
-			chromaPass.enabled = postprocessingActive && chromaPulse > 0.001 && tuning.chromaAmount > 0;
-			chromaPass.uniforms.uAmount.value = tuning.chromaAmount * chromaPulse;
+			const postprocessingActive = Boolean(
+				composer &&
+				bloomPass &&
+				chromaPass &&
+				tuning.postprocessingEnabled &&
+				!prefersReducedMotion
+			);
 
 			if (postprocessingActive) {
+				bloomPass.enabled = true;
+				bloomPass.strength = tuning.bloomStrength * lerp(0.82, 1.18, fxStretch);
+				bloomPass.radius = tuning.bloomRadius;
+				bloomPass.threshold = tuning.bloomThreshold;
+				chromaPass.enabled = chromaPulse > 0.001 && tuning.chromaAmount > 0;
+				chromaPass.uniforms.uAmount.value = tuning.chromaAmount * chromaPulse;
 				composer.render();
 			} else {
 				renderer.render(scene, camera);
 			}
+
+			if (isSceneVisible) {
+				startAnimation();
+			}
 		};
 
-		animate(0);
+		visibilityObserver = new IntersectionObserver(
+			([entry]) => {
+				isSceneVisible = Boolean(entry?.isIntersecting);
+				if (isSceneVisible) {
+					startAnimation();
+				} else {
+					stopAnimation();
+				}
+			},
+			{ rootMargin: '25% 0px' },
+		);
+		visibilityObserver.observe(stage);
+		startAnimation();
+		setupHeroGui();
 
 		const cleanup = () => {
-			window.cancelAnimationFrame(frameId);
+			stopAnimation();
 			window.removeEventListener('scroll', updateScrollProgress);
 			window.removeEventListener('resize', resize);
 			stage.removeEventListener('pointermove', onPointerMove);
 			resizeObserver.disconnect();
+			visibilityObserver?.disconnect();
 			destroyLenis();
-			gui?.destroy();
 			particleGeometry.dispose();
 			streakGeometry.dispose();
 			particleMaterial.dispose();
 			streakMaterial.dispose();
 			particleSprite?.dispose();
-			composer.dispose();
+			composer?.dispose();
+			gui?.destroy();
 			renderer.dispose();
 		};
 
@@ -759,6 +876,32 @@
 		display: block;
 		width: 100%;
 		height: 100%;
+	}
+
+	:global(.hero-debug-gui) {
+		position: fixed !important;
+		top: 5rem !important;
+		right: 1rem !important;
+		z-index: 9999 !important;
+		--background-color: rgba(6, 12, 9, 0.92);
+		--text-color: #edfff7;
+		--title-background-color: rgba(17, 31, 25, 0.96);
+		--widget-color: rgba(13, 24, 19, 0.92);
+		--hover-color: rgba(52, 211, 153, 0.18);
+		--focus-color: rgba(52, 211, 153, 0.28);
+		--number-color: #7ef6c4;
+		--string-color: #7ef6c4;
+		border: 1px solid rgba(126, 246, 196, 0.22);
+		border-radius: 12px;
+		box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+	}
+
+	@media (max-width: 720px) {
+		:global(.hero-debug-gui) {
+			left: 1rem !important;
+			right: 1rem !important;
+			width: auto !important;
+		}
 	}
 
 	:global(html.lenis),

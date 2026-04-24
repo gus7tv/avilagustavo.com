@@ -1,0 +1,31 @@
+GUSTAVO AVILA
+Creative Developer / UX Engineer
+Bogota, Colombia
+
+PERFIL
+Disenador de producto y front-end con experiencia en UX/UI, sistemas visuales e interfaces web de alta fidelidad. Mi enfoque combina pensamiento de producto, sensibilidad visual y desarrollo para convertir ideas en experiencias funcionales, expresivas y listas para produccion.
+
+ENFOQUE ACTUAL
+- Producto y experiencia de usuario
+- UX/UI y frontend
+- Interfaces inmersivas y exploracion 3D web
+
+EXPERIENCIA DESTACADA
+- Avaya for Healthcare
+- Masiv Voice WebApp
+- PayGo Prototype
+- Meta Front-End coursework
+
+STACK
+- Figma
+- Astro
+- React
+- Tailwind CSS
+- HTML
+- CSS
+- JavaScript
+
+LINKS
+Portfolio: https://avilagustavo.com
+LinkedIn: https://www.linkedin.com/in/gustavo-avila-2a153311b/
+GitHub: https://github.com/tavoavilaa

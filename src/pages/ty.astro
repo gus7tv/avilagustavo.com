@@ -1,13 +1,80 @@
 ---
-import Layout from '../layouts/ty.astro';
+import BaseHead from "../components/BaseHead.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 ---
 
-<Layout
-	title="¡Gracias!"
-	description="Lorem ipsum dolor sit amet"
-	pubDate={new Date('August 08 2021')}
-	heroImage="/work.jpg"
-	url='https://www.linkedin.com/in/gustavo-avila-2a153311b/'
->
+<!DOCTYPE html>
+<html lang="es">
+	<head>
+		<BaseHead title={`Gracias | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+	</head>
+	<body class="thank-you-page">
+		<div class="noise"></div>
+		<main class="thank-you-shell">
+			<section class="thank-you-card" aria-labelledby="thank-you-title">
+				<p class="thank-you-kicker">MENSAJE RECIBIDO</p>
+				<h1 id="thank-you-title">Gracias por escribir.</h1>
+				<p>
+					Estoy revisando tu información y me pondré en contacto contigo muy pronto.
+				</p>
+				<a class="button-outline" href="/">REGRESAR AL INICIO</a>
+			</section>
+		</main>
+	</body>
+</html>
 
-</Layout>
+<style>
+	.thank-you-page {
+		min-height: 100vh;
+		background:
+			radial-gradient(circle at 50% 0%, rgba(71, 223, 155, 0.12), transparent 34rem),
+			linear-gradient(180deg, #020504 0%, #000 100%);
+		color: var(--text-secondary);
+	}
+
+	.thank-you-shell {
+		position: relative;
+		z-index: 2;
+		display: grid;
+		min-height: 100vh;
+		place-items: center;
+		padding: clamp(1.25rem, 4vw, 3rem);
+	}
+
+	.thank-you-card {
+		width: min(100%, 42rem);
+		padding: clamp(1.6rem, 5vw, 3rem);
+		border: 1px solid rgba(71, 223, 155, 0.14);
+		border-radius: 1.5rem;
+		background: rgba(0, 0, 0, 0.68);
+		box-shadow: 0 24px 90px rgba(0, 0, 0, 0.36);
+		backdrop-filter: blur(18px);
+	}
+
+	.thank-you-kicker {
+		margin: 0 0 1rem;
+		color: var(--accent);
+		font-size: 0.78rem;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+	}
+
+	.thank-you-card h1 {
+		margin: 0;
+		color: var(--text-primary);
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(4rem, 13vw, 8.6rem);
+		font-weight: 500;
+		line-height: 0.9;
+		letter-spacing: 0;
+		text-wrap: balance;
+	}
+
+	.thank-you-card p:not(.thank-you-kicker) {
+		max-width: 33rem;
+		margin: 1.25rem 0 1.8rem;
+		color: var(--text-muted);
+		font-size: 1rem;
+		line-height: 1.55;
+	}
+</style>

@@ -89,17 +89,8 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
-	const guiStorageKey = "projects-monitor-3d-tuning-v5";
 	const textureLoader = new THREE.TextureLoader();
 	const textureCache = new Map();
-
-	const readSavedTuning = () => {
-		try {
-			return JSON.parse(window.localStorage.getItem(guiStorageKey) || "{}");
-		} catch {
-			return {};
-		}
-	};
 
 	const makeTuningDefaults = () => ({
 		wrapOffsetY: 9,
@@ -170,26 +161,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		return texture;
 	};
 
-	const createParticleSpriteTexture = () => {
-		const canvas = document.createElement("canvas");
-		canvas.width = 128;
-		canvas.height = 128;
-		const context = canvas.getContext("2d");
-		if (context) {
-			const gradient = context.createRadialGradient(64, 64, 4, 64, 64, 64);
-			gradient.addColorStop(0, "rgba(190,255,230,1)");
-			gradient.addColorStop(0.12, "rgba(120,255,196,1)");
-			gradient.addColorStop(0.34, "rgba(71,223,155,0.98)");
-			gradient.addColorStop(0.52, "rgba(71,223,155,0.2)");
-			gradient.addColorStop(1, "rgba(71,223,155,0)");
-			context.fillStyle = gradient;
-			context.fillRect(0, 0, 128, 128);
-		}
-		const texture = new THREE.CanvasTexture(canvas);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		return texture;
-	};
-
 	const loadTexture = async (src) => {
 		if (!src) return placeholderTexture;
 		if (textureCache.has(src)) return textureCache.get(src);
@@ -216,24 +187,19 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 			if (!stage || !frame || !sceneHost || !monitorLink) return;
 
-			const tuningDefaults = makeTuningDefaults();
-			const savedTuning = readSavedTuning();
-			const tuning = {
-				...tuningDefaults,
-				...Object.fromEntries(
-					Object.entries(savedTuning).filter(([key]) => key in tuningDefaults)
-				),
-			};
-			const headerParticleTone = "#d7fff1";
+			const tuning = makeTuningDefaults();
+			const rimLightTone = "#d7fff1";
+			const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
+			const pixelRatioCap = isMobileViewport ? 1.25 : 1.6;
 
 			const renderer = new THREE.WebGLRenderer({
 				alpha: true,
-				antialias: true,
+				antialias: !isMobileViewport,
 				powerPreference: "high-performance",
 			});
 			renderer.setClearColor(0x000000, 0);
 			renderer.outputColorSpace = THREE.SRGBColorSpace;
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
 			sceneHost.appendChild(renderer.domElement);
 
 			const scene = new THREE.Scene();
@@ -241,7 +207,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			camera.position.set(0, 0.2, 13.2);
 
 			const glowTexture = createGlowTexture();
-			const particleSpriteTexture = createParticleSpriteTexture();
 
 			const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
 			scene.add(ambientLight);
@@ -254,7 +219,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			keyLight.position.set(6, 8, 10);
 			scene.add(keyLight);
 
-			const rimLight = new THREE.PointLight(headerParticleTone, 7, 24, 2);
+			const rimLight = new THREE.PointLight(rimLightTone, 7, 24, 2);
 			rimLight.position.set(-6, 1.5, 7);
 			scene.add(rimLight);
 
@@ -282,189 +247,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			);
 			backdropGlow.position.set(0, -0.35, -6.4);
 			scene.add(backdropGlow);
-
-			const particleCount = window.matchMedia("(max-width: 767px)").matches ? 72 : 132;
-			const particlePositions = new Float32Array(particleCount * 3);
-			const particleColors = new Float32Array(particleCount * 3);
-			const particleSizes = new Float32Array(particleCount);
-			const particleAlpha = new Float32Array(particleCount);
-			const particleSpeed = new Float32Array(particleCount);
-			const particleOffset = new Float32Array(particleCount);
-			const particleTravelX = new Float32Array(particleCount);
-			const particleTravelY = new Float32Array(particleCount);
-			const particleDrift = new Float32Array(particleCount);
-
-			for (let index = 0; index < particleCount; index += 1) {
-				const dataIndex = index * 3;
-				const toneMix = Math.random();
-				const color = new THREE.Color().setRGB(
-					THREE.MathUtils.lerp(0.78, 0.92, toneMix),
-					THREE.MathUtils.lerp(0.96, 1, toneMix),
-					THREE.MathUtils.lerp(0.86, 0.95, toneMix)
-				);
-
-				particlePositions[dataIndex] = THREE.MathUtils.randFloat(0.9, 5.3);
-				particlePositions[dataIndex + 1] = THREE.MathUtils.randFloat(-3.8, 0.9);
-				particlePositions[dataIndex + 2] = THREE.MathUtils.randFloat(-6.1, -3.2);
-
-				particleColors[dataIndex] = color.r;
-				particleColors[dataIndex + 1] = color.g;
-				particleColors[dataIndex + 2] = color.b;
-				particleSizes[index] = THREE.MathUtils.randFloat(14, 26);
-				particleAlpha[index] = THREE.MathUtils.randFloat(0.12, 0.32);
-				particleSpeed[index] = THREE.MathUtils.randFloat(0.045, 0.082);
-				particleOffset[index] = Math.random();
-				particleTravelX[index] = THREE.MathUtils.randFloat(0.7, 1.8);
-				particleTravelY[index] = THREE.MathUtils.randFloat(2.4, 4.8);
-				particleDrift[index] = THREE.MathUtils.randFloat(0.015, 0.07);
-			}
-
-			const particleFieldGeometry = new THREE.BufferGeometry();
-			particleFieldGeometry.setAttribute(
-				"position",
-				new THREE.BufferAttribute(particlePositions, 3)
-			);
-			particleFieldGeometry.setAttribute("color", new THREE.BufferAttribute(particleColors, 3));
-			particleFieldGeometry.setAttribute(
-				"aSize",
-				new THREE.BufferAttribute(particleSizes, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aAlpha",
-				new THREE.BufferAttribute(particleAlpha, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aSpeed",
-				new THREE.BufferAttribute(particleSpeed, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aOffset",
-				new THREE.BufferAttribute(particleOffset, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aTravelX",
-				new THREE.BufferAttribute(particleTravelX, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aTravelY",
-				new THREE.BufferAttribute(particleTravelY, 1)
-			);
-			particleFieldGeometry.setAttribute(
-				"aDrift",
-				new THREE.BufferAttribute(particleDrift, 1)
-			);
-
-			const createParticleFieldMaterial = ({
-				sizeScale,
-				alphaScale,
-				brightness,
-			}) => {
-				const material = new THREE.ShaderMaterial({
-					uniforms: {
-						uTime: { value: 0 },
-						uPixelRatio: { value: Math.min(window.devicePixelRatio, 1.8) },
-						uSprite: { value: particleSpriteTexture },
-						uSizeScale: { value: sizeScale },
-						uAlphaScale: { value: alphaScale },
-						uBrightness: { value: brightness },
-					},
-					vertexShader: `
-						uniform float uTime;
-						uniform float uPixelRatio;
-						uniform float uSizeScale;
-						uniform float uAlphaScale;
-						attribute float aSize;
-						attribute float aAlpha;
-						attribute float aSpeed;
-						attribute float aOffset;
-						attribute float aTravelX;
-						attribute float aTravelY;
-						attribute float aDrift;
-						attribute vec3 color;
-						varying vec3 vColor;
-						varying float vAlpha;
-
-						void main() {
-							float progress = fract(aOffset + uTime * aSpeed);
-							vec3 transformed = position;
-							transformed.x += progress * aTravelX;
-							transformed.y += progress * aTravelY;
-							transformed.x += sin(uTime * 0.8 + aOffset * 11.0) * aDrift;
-							transformed.y += cos(uTime * 0.95 + aOffset * 9.0) * aDrift * 0.45;
-
-							float travelFade = 1.0 - smoothstep(0.64, 1.0, progress);
-							float topRightFade =
-								1.0 -
-								(
-									smoothstep(2.5, 5.1, transformed.x) *
-									smoothstep(0.8, 3.6, transformed.y)
-								);
-							float shimmer = 0.86 + sin(uTime * 1.4 + aOffset * 15.0) * 0.14;
-
-							vColor = color;
-							vAlpha = aAlpha * travelFade * topRightFade * shimmer * uAlphaScale;
-
-							vec4 mvPosition = modelViewMatrix * vec4(transformed, 1.0);
-							gl_Position = projectionMatrix * mvPosition;
-							gl_PointSize = aSize * uSizeScale * uPixelRatio * (12.0 / -mvPosition.z);
-						}
-					`,
-					fragmentShader: `
-						uniform sampler2D uSprite;
-						uniform float uBrightness;
-						varying vec3 vColor;
-						varying float vAlpha;
-
-						void main() {
-							vec4 sprite = texture2D(uSprite, gl_PointCoord);
-							float alpha = sprite.a * vAlpha;
-
-							if (alpha < 0.01) discard;
-
-							gl_FragColor = vec4(vColor * sprite.rgb * uBrightness, alpha);
-						}
-					`,
-					transparent: true,
-					depthWrite: false,
-					blending: THREE.AdditiveBlending,
-				});
-				material.toneMapped = false;
-				return material;
-			};
-
-			const particleFieldMaterial = createParticleFieldMaterial({
-				sizeScale: 1,
-				alphaScale: 1,
-				brightness: 1,
-			});
-			const particleFieldBloomMaterial = createParticleFieldMaterial({
-				sizeScale: 1.9,
-				alphaScale: 0.34,
-				brightness: 1.08,
-			});
-			const particleFieldEmissiveMaterial = createParticleFieldMaterial({
-				sizeScale: 2.8,
-				alphaScale: 0.16,
-				brightness: 1.2,
-			});
-
-			const particleField = new THREE.Points(particleFieldGeometry, particleFieldMaterial);
-			particleField.frustumCulled = false;
-			scene.add(particleField);
-
-			const particleFieldBloom = new THREE.Points(
-				particleFieldGeometry,
-				particleFieldBloomMaterial
-			);
-			particleFieldBloom.frustumCulled = false;
-			scene.add(particleFieldBloom);
-
-			const particleFieldEmissive = new THREE.Points(
-				particleFieldGeometry,
-				particleFieldEmissiveMaterial
-			);
-			particleFieldEmissive.frustumCulled = false;
-			scene.add(particleFieldEmissive);
 
 			const shellMaterial = new THREE.MeshPhysicalMaterial({
 				color: 0x1c1b1c,
@@ -550,23 +332,32 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				loadTexture(project.heroImage)
 					.then((texture) => {
 						textures[index] = texture;
+						requestRender();
 					})
 					.catch(() => {
 						textures[index] = placeholderTexture;
+						requestRender();
 					});
 			});
 
 			const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-			const shouldShowGui =
-				window.location.search.includes("gui=1") ||
-				window.location.hostname === "localhost" ||
-				window.location.hostname === "127.0.0.1";
 			const hoverTarget = { x: 0, y: 0 };
 			const hoverState = { x: 0, y: 0 };
 			let frameId = 0;
 			let lastProgress = -1;
-			let gui = null;
-			let guiToastTimer = 0;
+			let isMonitorVisible = true;
+			let visibilityObserver = null;
+
+			function requestRender() {
+				if (!isMonitorVisible || frameId) return;
+				frameId = window.requestAnimationFrame(render);
+			}
+
+			function stopRender() {
+				if (!frameId) return;
+				window.cancelAnimationFrame(frameId);
+				frameId = 0;
+			}
 
 			const applyTuning = () => {
 				ambientLight.intensity = tuning.ambientIntensity;
@@ -575,27 +366,22 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				rimLight.intensity = tuning.rimIntensity;
 			};
 
-			const saveTuning = () => {
-				try {
-					window.localStorage.setItem(guiStorageKey, JSON.stringify(tuning));
-				} catch {}
-				applyTuning();
-			};
-
 			applyTuning();
 
-				const onPointerMove = (event) => {
+			const onPointerMove = (event) => {
 				if (!hoverEnabled) return;
 				const rect = frame.getBoundingClientRect();
 				const relativeX = clampValue((event.clientX - rect.left) / rect.width, 0, 1);
 				const relativeY = clampValue((event.clientY - rect.top) / rect.height, 0, 1);
 				hoverTarget.x = easeHoverAxis((relativeX - 0.5) * 2);
 				hoverTarget.y = easeHoverAxis((relativeY - 0.5) * 2);
+				requestRender();
 			};
 
 			const resetPointer = () => {
 				hoverTarget.x = 0;
 				hoverTarget.y = 0;
+				requestRender();
 			};
 
 			if (hoverEnabled) {
@@ -606,14 +392,11 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			const resize = () => {
 				const width = Math.max(1, sceneHost.clientWidth);
 				const height = Math.max(1, sceneHost.clientHeight);
-				const pixelRatio = Math.min(window.devicePixelRatio, 1.8);
+				const pixelRatio = Math.min(window.devicePixelRatio, pixelRatioCap);
 				camera.aspect = width / height;
 				camera.updateProjectionMatrix();
 				renderer.setPixelRatio(pixelRatio);
 				renderer.setSize(width, height, false);
-				particleFieldMaterial.uniforms.uPixelRatio.value = pixelRatio;
-				particleFieldBloomMaterial.uniforms.uPixelRatio.value = pixelRatio;
-				particleFieldEmissiveMaterial.uniforms.uPixelRatio.value = pixelRatio;
 
 				const distance = camera.position.z - backdrop.position.z;
 				const visibleHeight =
@@ -622,118 +405,33 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 				backdrop.scale.set(visibleWidth * 0.98, visibleHeight * 0.96, 1);
 				backdropGlow.scale.set(visibleWidth * 0.62, visibleHeight * 0.5, 1);
+				requestRender();
 			};
 
 			const resizeObserver = new ResizeObserver(resize);
 			resizeObserver.observe(sceneHost);
 			resize();
 
-			if (shouldShowGui) {
-				const { default: GUI } = await import("https://esm.sh/lil-gui@0.19.2");
-				gui = new GUI({ title: "Projects Monitor 3D" });
-				gui.domElement.style.zIndex = "120";
-				gui.domElement.setAttribute("data-lenis-prevent", "true");
+			window.addEventListener("scroll", requestRender, { passive: true });
+			stage.addEventListener("z-space-progress", requestRender);
 
-				const toastTuning = async (message) => {
-					const output = JSON.stringify(tuning, null, 2);
-					console.log("ProjectsMonitor tuning", output);
-					try {
-						await navigator.clipboard?.writeText(output);
-					} catch {}
-
-					window.clearTimeout(guiToastTimer);
-					let toast = document.querySelector("[data-projects-monitor-gui-toast]");
-					if (!toast) {
-						toast = document.createElement("pre");
-						toast.dataset.projectsMonitorGuiToast = "true";
-						toast.style.cssText = [
-							"position:fixed",
-							"right:1rem",
-							"bottom:1rem",
-							"z-index:10000",
-							"max-width:min(34rem,calc(100vw - 2rem))",
-							"max-height:42vh",
-							"overflow:auto",
-							"margin:0",
-							"padding:0.9rem 1rem",
-							"border:1px solid rgba(71,223,155,0.45)",
-							"background:rgba(0,0,0,0.92)",
-							"color:#d9fff0",
-							"font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace",
-							"white-space:pre-wrap",
-						].join(";");
-						document.body.appendChild(toast);
+			visibilityObserver = new IntersectionObserver(
+				([entry]) => {
+					isMonitorVisible = Boolean(entry?.isIntersecting);
+					if (isMonitorVisible) {
+						requestRender();
+					} else {
+						stopRender();
 					}
-					toast.textContent = `${message}\n${output}`;
-					guiToastTimer = window.setTimeout(() => {
-						toast.remove();
-					}, 12000);
-				};
+				},
+				{ rootMargin: "25% 0px" }
+			);
+			visibilityObserver.observe(stage);
 
-				const guiState = {
-					print: () => toastTuning("Valores copiados al portapapeles:"),
-					reset: () => {
-						Object.assign(tuning, tuningDefaults);
-						try {
-							window.localStorage.removeItem(guiStorageKey);
-						} catch {}
-						applyTuning();
-						const controllers =
-							typeof gui?.controllersRecursive === "function"
-								? gui.controllersRecursive()
-								: gui?.controllers || [];
-						controllers.forEach((controller) => controller.updateDisplay());
-					},
-				};
+			function render(time) {
+				frameId = 0;
+				if (!isMonitorVisible) return;
 
-				const addPersisted = (folder, key, min, max, step, label) =>
-					folder.add(tuning, key, min, max, step).name(label).onChange(saveTuning);
-
-				const layoutFolder = gui.addFolder("Layout");
-				addPersisted(layoutFolder, "wrapOffsetY", -160, 160, 1, "offset Y");
-				addPersisted(layoutFolder, "wrapOffsetX", -160, 160, 1, "offset X");
-				addPersisted(layoutFolder, "monitorScale", 0.7, 1.3, 0.01, "scale");
-
-				const cameraFolder = gui.addFolder("Camera");
-				addPersisted(cameraFolder, "cameraY", -2, 2, 0.01, "camera Y");
-				addPersisted(cameraFolder, "cameraZ", 9, 18, 0.01, "camera Z");
-				addPersisted(cameraFolder, "lookAtY", -3, 2, 0.01, "lookAt Y");
-				addPersisted(cameraFolder, "lookAtZ", -2, 2, 0.01, "lookAt Z");
-
-				const rigFolder = gui.addFolder("Monitor");
-				addPersisted(rigFolder, "rigRotX", -0.4, 0.6, 0.005, "rot X");
-				addPersisted(rigFolder, "rigRotY", -0.8, 0.2, 0.005, "rot Y");
-				addPersisted(rigFolder, "rigRotZ", -0.2, 0.2, 0.005, "rot Z");
-				addPersisted(rigFolder, "rigPosX", -2, 2, 0.01, "pos X");
-				addPersisted(rigFolder, "rigPosY", -2, 2, 0.01, "pos Y");
-
-				const hoverFolder = gui.addFolder("Hover");
-				addPersisted(hoverFolder, "hoverRotX", 0, 0.4, 0.005, "hover rot X");
-				addPersisted(hoverFolder, "hoverRotY", 0, 0.4, 0.005, "hover rot Y");
-				addPersisted(hoverFolder, "hoverRotZ", -0.12, 0.12, 0.005, "hover rot Z");
-				addPersisted(hoverFolder, "hoverShiftX", -1.2, 1.2, 0.01, "hover pos X");
-				addPersisted(hoverFolder, "hoverShiftY", -1.2, 1.2, 0.01, "hover pos Y");
-				addPersisted(hoverFolder, "cameraHoverX", -1, 1, 0.01, "camera hover X");
-				addPersisted(hoverFolder, "cameraHoverY", -1, 1, 0.01, "camera hover Y");
-				addPersisted(hoverFolder, "hoverEase", 0.02, 0.2, 0.005, "smooth");
-
-				const motionFolder = gui.addFolder("Pantalla");
-				addPersisted(motionFolder, "floatAmount", 0, 0.08, 0.001, "float amount");
-				addPersisted(motionFolder, "floatSpeed", 0, 3, 0.01, "float speed");
-				addPersisted(motionFolder, "blendShift", 0, 0.4, 0.005, "blend shift");
-				addPersisted(motionFolder, "blendScale", 0, 0.08, 0.001, "blend scale");
-
-				const lightFolder = gui.addFolder("Luces");
-				addPersisted(lightFolder, "ambientIntensity", 0, 3, 0.01, "ambient");
-				addPersisted(lightFolder, "hemiIntensity", 0, 3, 0.01, "hemisphere");
-				addPersisted(lightFolder, "keyIntensity", 0, 4, 0.01, "key");
-				addPersisted(lightFolder, "rimIntensity", 0, 14, 0.1, "rim");
-
-				gui.add(guiState, "print").name("imprimir valores");
-				gui.add(guiState, "reset").name("reset");
-			}
-
-			const render = (time) => {
 				const projectsProgress =
 					parseFloat(getComputedStyle(stage).getPropertyValue("--projects-progress")) || 0;
 
@@ -802,13 +500,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				rig.scale.setScalar(tuning.monitorScale);
 				backdropGlow.position.x = hoverState.x * -1.65;
 				backdropGlow.position.y = -0.4 + hoverState.y * -0.78;
-				particleField.position.x = hoverState.x * -0.34;
-				particleField.position.y = hoverState.y * -0.18;
-				particleFieldMaterial.uniforms.uTime.value = elapsed;
-				particleFieldBloom.position.copy(particleField.position);
-				particleFieldEmissive.position.copy(particleField.position);
-				particleFieldBloomMaterial.uniforms.uTime.value = elapsed;
-				particleFieldEmissiveMaterial.uniforms.uTime.value = elapsed;
 
 				camera.position.x += ((hoverState.x * tuning.cameraHoverX) - camera.position.x) * 0.05;
 				camera.position.y +=
@@ -851,29 +542,28 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				renderer.render(scene, camera);
 
 				if (
-					progressDelta < 0.0008 &&
-					Math.abs(hoverTarget.x - hoverState.x) < 0.001 &&
-					Math.abs(hoverTarget.y - hoverState.y) < 0.001
+					progressDelta >= 0.0008 ||
+					Math.abs(hoverTarget.x - hoverState.x) >= 0.001 ||
+					Math.abs(hoverTarget.y - hoverState.y) >= 0.001
 				) {
-					frameId = window.requestAnimationFrame(render);
-					return;
+					requestRender();
 				}
+			}
 
-				frameId = window.requestAnimationFrame(render);
-			};
-
-			frameId = window.requestAnimationFrame(render);
+			requestRender();
 
 			window.addEventListener(
 				"pagehide",
 				() => {
-					window.cancelAnimationFrame(frameId);
+					stopRender();
+					window.removeEventListener("scroll", requestRender);
+					stage.removeEventListener("z-space-progress", requestRender);
 					resizeObserver.disconnect();
+					visibilityObserver?.disconnect();
 					if (hoverEnabled) {
 						frame.removeEventListener("pointermove", onPointerMove);
 						frame.removeEventListener("pointerleave", resetPointer);
 					}
-					gui?.destroy();
 					renderer.dispose();
 					screenGeometry.dispose();
 					shell.geometry.dispose();
@@ -883,20 +573,15 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					floorShadow.geometry.dispose();
 					backdrop.geometry.dispose();
 					backdropGlow.geometry.dispose();
-					particleFieldGeometry.dispose();
 					shellMaterial.dispose();
 					trimMaterial.dispose();
 					standMaterial.dispose();
 					glassMaterial.dispose();
 					backdropMaterial.dispose();
 					backdropGlow.material.dispose();
-					particleFieldMaterial.dispose();
-					particleFieldBloomMaterial.dispose();
-					particleFieldEmissiveMaterial.dispose();
 					screenBaseMaterial.dispose();
 					screenOverlayMaterial.dispose();
 					glowTexture.dispose();
-					particleSpriteTexture.dispose();
 				},
 				{ once: true }
 			);

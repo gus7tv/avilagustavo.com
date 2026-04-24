@@ -1,373 +1,127 @@
-/*
-  The CSS in this style tag is based off of Bear Blog's default CSS.
-  https://github.com/HermanMartinus/bearblog/blob/297026a877bc2ab2b3bdfbd6b9f7961c350917dd/templates/styles/blog/default.css
-  License MIT: https://github.com/HermanMartinus/bearblog/blob/master/LICENSE.md
- */
-
- @tailwind base;
- @tailwind components;
- @tailwind utilities;
-
 :root {
 	--accent: #47df9b;
 	--accent-dark: #003822;
-	--surface: #000000;
-	--surface-low: #050505;
+	--surface: #020504;
+	--surface-low: #050806;
 	--surface-high: rgba(0, 0, 0, 0.78);
 	--surface-ghost: rgba(71, 223, 155, 0.08);
-	--text-primary: #d9e3f6;
+	--text-primary: #f4f7fb;
 	--text-secondary: #bdc7d9;
 	--text-muted: #bbcabe;
 	--outline-soft: rgba(71, 223, 155, 0.16);
+	--outline-white: rgba(255, 255, 255, 0.28);
 	--shadow-glow: 0 0 60px rgba(71, 223, 155, 0.12);
+	color-scheme: dark;
 }
 
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
 
 html {
-  scroll-behavior: smooth;
-}
-
-body {
-	font-family: 'Inter', sans-serif;
-	margin: 0;
-	padding: 0;
-	text-align: left;
-	background-size: 100% 600px;
-	word-wrap: break-word;
-	overflow-wrap: break-word;
-	color: var(--text-secondary);
-	font-size: 18px;
-	line-height: 1.7;
+	scroll-behavior: smooth;
 	background: var(--surface);
 }
 
+body {
+	margin: 0;
+	min-width: 320px;
+	background: var(--surface);
+	color: var(--text-secondary);
+	font-family: "Inter", sans-serif;
+	font-size: 18px;
+	line-height: 1.7;
+	text-align: left;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+}
 
-#topBtn{
+body::selection {
+	background: rgba(71, 223, 155, 0.32);
+	color: var(--text-primary);
+}
+
+a {
+	color: inherit;
+}
+
+img,
+svg,
+canvas {
+	max-width: 100%;
+}
+
+button,
+input,
+textarea {
+	font: inherit;
+}
+
+textarea {
+	resize: none;
+}
+
+.noise {
 	position: fixed;
-	bottom: 0;
-	right: 2%;
+	inset: 0;
 	z-index: 1;
-	margin-bottom: 1.25rem;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	background: repeat center center url("/noise.svg");
+	background-size: 14%;
+	opacity: 0.12;
+	mix-blend-mode: soft-light;
 }
 
-.bg-grid{
-		background-repeat: no-repeat;
-		background-size: contain;
-		background-position: top;
-}
-
-
-
-
-
-.flare{
-	z-index: 0;
-    width: 500px;
-    height: 500px;
-    opacity: 0.5;
-    border-radius: 50%;
-    filter: blur(80px);
-    position: absolute;
-    right: 15%;
-    top: 5%;
-    background: linear-gradient(90deg, rgba(1, 135, 253, 0.208) 0%, rgba(2,250,214,1) 100%);
-    -webkit-animation: zoomInOut 5s infinite;
-    animation: zoomInOut 5s infinite;
-	mix-blend-mode: screen;
-	}
-	.flare2{
-	z-index: 0;
-    width: 600px;
-    height: 500px;
-    opacity: 0.5;
-    border-radius: 50%;
-    filter: blur(120px);
-    position: absolute;
-    right: 5%;
-    top: 5%;
-    background: linear-gradient(90deg, rgba(35, 0, 66, 0.411) 0%, rgba(2,250,214,1) 100%);
-    -webkit-animation: zoomInOut 5s infinite;
-    animation: zoomInOut 5s infinite;
-	mix-blend-mode: screen;
-	}
-	.flare3{
-	z-index: 0;
-    width: 600px;
-    height: 500px;
-    opacity: 0.5;
-    border-radius: 50%;
-    filter: blur(120px);
-    position: fixed;
-    left: 5%;
-    top: 20%;
-    background: linear-gradient(90deg, rgba(1, 49, 144, 0.822) 0%, rgba(2,250,214,1) 100%);
-    -webkit-animation: zoomInOut 5s infinite;
-    animation: zoomInOut 5s infinite;
-	mix-blend-mode: screen;
-	}
-	.flare4{
-	z-index: 0;
-    width: 600px;
-    height: 600px;
-    opacity: 0.5;
-    border-radius: 50%;
-    filter: blur(220px);
-    position: absolute;
-    left: 0;
-	right: 0;
-    top: -5%;
-    background: linear-gradient(90deg, rgba(5, 151, 204, 0.822) 0%, rgba(2,250,214,1) 100%);
-    -webkit-animation: zoomInOut 5s infinite;
-    animation: zoomInOut 5s infinite;
-	mix-blend-mode: screen;
-	}
-	.flare5{
-	z-index: 0;
-    width: 600px;
-    height: 500px;
-    opacity: 0.3;
-    border-radius: 50%;
-    filter: blur(120px);
-    position: absolute;
-    left: -15%;
-    top: -20%;
-    background: linear-gradient(90deg, rgba(1, 49, 144, 0.822) 0%, rgba(2,250,214,1) 100%);
-    -webkit-animation: zoomInOut 5s infinite;
-    animation: zoomInOut 5s infinite;
-	mix-blend-mode: screen;
-	}
-
-	@media only screen and (max-width: 768px) {
-		.flare{
-			z-index: 0;
-			width: 100px;
-			height: 100px;
-			opacity: 0.5;
-			border-radius: 50%;
-			filter: blur(80px);
-			position: absolute;
-			right: 15%;
-			top: 5%;
-			background: linear-gradient(90deg, rgba(1, 135, 253, 0.208) 0%, rgba(2,250,214,1) 100%);
-			mix-blend-mode: screen;
-		}
-		.flare2{
-		z-index: 0;
-		width: 200px;
-		height: 100px;
-		opacity: 0.5;
-		border-radius: 50%;
-		filter: blur(120px);
-		position: absolute;
-		right: 5%;
-		top: 5%;
-		background: linear-gradient(90deg, rgba(35, 0, 66, 0.411) 0%, rgba(2,250,214,1) 100%);
-		mix-blend-mode: screen;
-		}
-		.flare3{
-		z-index: 0;
-		width: 200px;
-		height: 100px;
-		opacity: 0.5;
-		border-radius: 50%;
-		filter: blur(120px);
-		position: fixed;
-		left: 5%;
-		top: 20%;
-		background: linear-gradient(90deg, rgba(1, 49, 144, 0.822) 0%, rgba(2,250,214,1) 100%);
-		mix-blend-mode: screen;
-		}
-		.flare4{
-		z-index: 0;
-		width: 200px;
-		height: 200px;
-		opacity: 0.5;
-		border-radius: 50%;
-		filter: blur(220px);
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: -5%;
-		background: linear-gradient(90deg, rgba(5, 151, 204, 0.822) 0%, rgba(2,250,214,1) 100%);
-		mix-blend-mode: screen;
-		}
-		.flare5{
-		z-index: 0;
-		width: 200px;
-		height: 100px;
-		opacity: 0.3;
-		border-radius: 50%;
-		filter: blur(120px);
-		position: absolute;
-		left: -15%;
-		top: -20%;
-		background: linear-gradient(90deg, rgba(1, 49, 144, 0.822) 0%, rgba(2,250,214,1) 100%);
-		mix-blend-mode: screen;
-		}
-	}
-
-
-
-.pulsate-bck {
-	-webkit-animation: pulsate-bck 10s ease-in-out infinite both;
-	        animation: pulsate-bck 10s ease-in-out infinite both;
-}
-
-
-
-
-
-@keyframes pulsate-bck {
-  0% {
-    -webkit-transform: scale(1);
-            transform: scale(1);
-			transform: translate(0);
-  }
-  50% {
-    -webkit-transform: scale(0.6);
-            transform: scale(0.6);
-			transform: translate(50px, 50px);
-  }
-
-  100% {
-    -webkit-transform: scale(1);
-            transform: scale(1);
-			transform: translate(0);
-  }
-}
-
-.noise{
-    pointer-events: none;
-    z-index: 1;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: repeat center center url(/noise.svg);
-    background-size: 14%;
-    opacity: .12;
-    mix-blend-mode: soft-light;
-  }
-
-textarea{
-	resize:none !important;
-}
-
-
-
-.blogLayout h1{
-	font-size: 2.5rem !important;
-	line-height: 1 !important;
-	margin: 12px 0;
-	font-weight: bold;
-}
-.blogLayout h2{
-	font-size: 2rem !important;
-	line-height: 2.5rem !important;
-	margin: 12px 0;
+.button-outline {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 0.78rem 1rem;
+	border: 1px solid var(--outline-white);
+	border-radius: 1rem;
+	background: rgba(0, 0, 0, 0.72);
+	color: rgba(245, 248, 255, 0.94);
+	font-size: 0.82rem;
 	font-weight: 600;
-}
-.blogLayout h3{
-	font-size: 1.675rem !important;
-	line-height: 2.25rem !important;
-	margin: 12px 0;
-}
-.blogLayout h4{
-	font-size: 1.5rem !important;
-	line-height: 2rem !important;
-	margin: 12px 0;
-}
-.blogLayout h5{
-	font-size: 1.25rem !important;
-	line-height: 1.75rem !important;
-	margin: 12px 0;
-}
-.blogLayout h6{
-	font-size: 1.125rem !important;
-	line-height: 1.75rem !important;
-	margin: 12px 0;
-
-}
-.blogLayout pre{
-	padding: 1.5rem;
-	margin: 1.5rem 0;
-
+	line-height: 1.1;
+	letter-spacing: 0.04em;
+	text-align: center;
+	text-decoration: none;
+	transition:
+		transform 180ms ease,
+		border-color 180ms ease,
+		background 180ms ease,
+		box-shadow 180ms ease;
 }
 
-.blogLayout p{
-	max-width: 80ch !important;
-	line-height: 1.8rem !important;
-
+.button-outline:hover {
+	transform: translateY(-1px);
+	border-color: rgba(255, 255, 255, 0.56);
+	background: rgba(0, 0, 0, 0.88);
+	box-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
 }
 
-.blogLayout a{
-	color: var(--accent) !important;
-	text-decoration: underline;
+.button-outline:is(:focus, :focus-visible, :active) {
+	outline: none;
+	border-color: rgba(255, 255, 255, 0.7);
+	box-shadow:
+		0 0 0 3px rgba(248, 255, 252, 0.12),
+		0 0 0 6px rgba(255, 255, 255, 0.18);
 }
 
-.blogLayout ul {
-	list-style: disc;
-	margin: 1rem 2rem;
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		scroll-behavior: auto !important;
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }
-
-.blogLayout ul li{
-	margin-bottom: 1rem;
-}
-
-.main-color{
-	background-color: var(--accent);
-}
-
-@keyframes lights {
-  0% {
-    text-shadow:
-      0 0 1em hsla(145, 100%, 50%, 0.2),
-      0 0 0.125em hsla(142, 100%, 60%, 0.3),
-      -1em -0.125em 0.5em hsla(174, 100%, 60%, 0),
-      1em 0.125em 0.5em hsla(200, 100%, 60%, 0);
-  }
-  
-  30% { 
-    text-shadow:
-      0 0 1em hsla(130, 100%, 50%, 0.5),
-      0 0 0.125em hsla(158, 100%, 60%, 0.5),
-      -0.5em -0.125em 0.25em hsla(192, 100%, 60%, 0.1),
-      0.5em 0.125em 0.25em hsla(200, 100%, 60%, 0.3);
-  }
-  
-  40% { 
-    text-shadow:
-      0 0 1em hsla(120, 100%, 50%, 0.5),
-      0 0 0.125em hsla(127, 100%, 90%, 0.5),
-      -0.25em -0.125em 0.125em hsla(158, 100%, 60%, 0.1),
-      0.25em 0.125em 0.125em hsla(200, 100%, 60%, 0.3);
-  }
-  
-  70% {
-    text-shadow:
-      0 0 1em hsla(145, 100%, 50%, 0.611),
-      0 0 0.125em hsla(120, 100%, 60%, 0.5),
-      0.5em -0.125em 0.25em hsla(186, 100%, 60%, 0.1),
-      -0.5em 0.125em 0.25em hsla(200, 100%, 60%, 0.3);
-  }
-  
-  100% {
-    text-shadow:
-      0 0 1em hsla(156, 100%, 50%, 0.2),
-      0 0 0.125em hsla(131, 100%, 60%, 0.3),
-      1em -0.125em 0.5em hsla(153, 100%, 60%, 0),
-      -1em 0.125em 0.5em hsla(200, 100%, 60%, 0);
-  }
-  
-}
-
-
-.idea {
-  margin: auto;
-  animation: lights 6s linear infinite;
-  animation-delay: 5s;
-}
-
-
-

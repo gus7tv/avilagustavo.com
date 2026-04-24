@@ -1,7 +1,5 @@
 ---
-// Import the global.css file here so that it is included on
-// all pages through the use of the <BaseHead /> component.
-import '../styles/global.css';
+import "../styles/global.css";
 
 interface Props {
 	title: string;
@@ -9,131 +7,39 @@ interface Props {
 	image?: string;
 }
 
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-
-const { title, description, image = '/blog-placeholder-1.jpg' } = Astro.props;
+const siteURL = Astro.site ?? new URL("https://avilagustavo.com");
+const canonicalURL = new URL(Astro.url.pathname, siteURL);
+const { title, description, image = "/Logo-G.jpg" } = Astro.props;
+const socialImage = new URL(image, siteURL);
 ---
 
-<!-- Global Metadata -->
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#020504" />
 <meta name="generator" content={Astro.generator} />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnect" href="https://esm.sh" crossorigin />
 <link
 	rel="stylesheet"
-	href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800&display=swap"
+	href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap"
 />
 
-<!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
-
-<!-- Primary Meta Tags -->
 <title>{title}</title>
 <meta name="title" content={title} />
 <meta name="description" content={description} />
 
-<!-- Open Graph / Facebook -->
 <meta property="og:type" content="website" />
-<meta property="og:url" content={Astro.url} />
+<meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={new URL(image, Astro.url)} />
+<meta property="og:image" content={socialImage} />
 
-<!-- Twitter -->
-<meta property="twitter:card" content="summary_large_image" />
-<meta property="twitter:url" content={Astro.url} />
-<meta property="twitter:title" content={title} />
-<meta property="twitter:description" content={description} />
-<meta property="twitter:image" content={new URL(image, Astro.url)} />
-
-
-
-<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/1.8.0/flowbite.min.js"></script>
-<script>
-    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark');
-    } else {
-        document.documentElement.classList.remove('dark')
-    }
-</script>
-<script>
-	const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-	const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-	const themeToggleBtn = document.getElementById('theme-toggle');
-
-	if (themeToggleDarkIcon && themeToggleLightIcon && themeToggleBtn) {
-		if (
-			localStorage.getItem('color-theme') === 'dark' ||
-			(!('color-theme' in localStorage) &&
-				window.matchMedia('(prefers-color-scheme: dark)').matches)
-		) {
-			themeToggleLightIcon.classList.remove('hidden');
-		} else {
-			themeToggleDarkIcon.classList.remove('hidden');
-		}
-
-		themeToggleBtn.addEventListener('click', function () {
-			themeToggleDarkIcon.classList.toggle('hidden');
-			themeToggleLightIcon.classList.toggle('hidden');
-
-			if (localStorage.getItem('color-theme')) {
-				if (localStorage.getItem('color-theme') === 'light') {
-					document.documentElement.classList.add('dark');
-					localStorage.setItem('color-theme', 'dark');
-				} else {
-					document.documentElement.classList.remove('dark');
-					localStorage.setItem('color-theme', 'light');
-				}
-			} else if (document.documentElement.classList.contains('dark')) {
-				document.documentElement.classList.remove('dark');
-				localStorage.setItem('color-theme', 'light');
-			} else {
-				document.documentElement.classList.add('dark');
-				localStorage.setItem('color-theme', 'dark');
-			}
-		});
-	}
-  </script>
-  <!-- FAB & NAV functionality -->
-<script>
-	// Get the button
-	let mybutton = document.getElementById("topBtn");
-	let nav = document.querySelector(".navbar");
-	// When the user scrolls down 20px from the top of the document, show the button
-	window.onscroll = function () {
-	  scrollFunction();
-	};
-	function scrollFunction() {
-	  if (!mybutton || !nav) {
-		return;
-	  }
-	  if (
-		document.body.scrollTop > 20 ||
-		document.documentElement.scrollTop > 20
-	  ) {
-		mybutton.style.display = "block";
-		nav.classList.add("navDown");
-	  } else {
-		mybutton.style.display = "none";
-		nav.classList.remove("navDown");
-	  }
-	}
-	// When the user clicks on the button, scroll to the top of the document
-	function topFunction() {
-	  document.body.scrollTop = 0;
-	  document.documentElement.scrollTop = 0;
-	}
-  
-	if (mybutton) {
-		mybutton.addEventListener("click", () => {
-		  topFunction();
-		});
-	}
-	
-  </script>
-  
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:url" content={canonicalURL} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={socialImage} />
