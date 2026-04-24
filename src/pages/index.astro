@@ -1,5 +1,6 @@
 ---
 import BaseHead from "../components/BaseHead.astro";
+import HeroMouseDistortion from "../components/HeroMouseDistortion.astro";
 import ProjectsMonitor from "../components/ProjectsMonitor.astro";
 import ScrollSpace3D from "../components/ScrollSpace3D.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
@@ -117,6 +118,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 						<span id="proyectos" class="z-space__anchor z-space__anchor--projects" aria-hidden="true"></span>
 						<div class="z-space__viewport">
 							<ScrollSpace3D />
+							<HeroMouseDistortion />
 
 							<section class="hero z-panel z-panel--hero" aria-label="Hero">
 								<div class="hero__topline">
@@ -154,6 +156,11 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 									<p class="hero__caption hero__caption--end">Based in Bogotá, Co</p>
 								</div>
 							</section>
+
+							<a class="hero__scroll-hint" href="#proyectos" aria-label="Ir a proyectos">
+								<span class="hero__scroll-wheel" aria-hidden="true"></span>
+								<span class="hero__scroll-label" aria-hidden="true">scroll</span>
+							</a>
 
 							<section class="section-block z-panel z-panel--projects" aria-label="Proyectos seleccionados">
 								<ProjectsMonitor projects={projects} />
@@ -425,18 +432,20 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	.topbar__cta:hover {
+		color: #47df9b !important;
 		transform: translateY(-1px);
-		border-color: rgba(255, 255, 255, 0.56);
-		background: rgba(0, 0, 0, 0.88);
-		box-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
+		border-color: rgba(71, 223, 155, 0.5);
+		background: rgba(0, 0, 0, 0.92);
+		box-shadow: 0 0 16px rgba(71, 223, 155, 0.08);
 	}
 
 	.topbar__cta:is(:focus, :focus-visible, :active) {
 		outline: none;
 		box-shadow:
-			0 0 0 3px rgba(248, 255, 252, 0.12),
-			0 0 0 6px rgba(255, 255, 255, 0.18);
-		border-color: rgba(255, 255, 255, 0.7);
+			0 0 0 3px rgba(71, 223, 155, 0.14),
+			0 0 0 6px rgba(71, 223, 155, 0.2);
+		border-color: rgba(71, 223, 155, 0.62);
+		color: #47df9b !important;
 	}
 
 	.contact-submit-button {
@@ -470,6 +479,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		--projects-reveal-edge: 10%;
 		--projects-reveal-x: 50%;
 		--projects-reveal-y: 44%;
+		--scroll-hint-opacity: 1;
 		position: relative;
 		min-height: 320vh;
 		margin: 0 auto;
@@ -647,6 +657,73 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		pointer-events: none;
 	}
 
+	.hero__scroll-hint {
+		position: absolute;
+		left: 50%;
+		bottom: 2.15rem;
+		z-index: 6;
+		display: flex;
+		width: 1.9rem;
+		height: 3.15rem;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid rgba(126, 246, 196, 0.78);
+		border-radius: 999px;
+		background:
+			linear-gradient(180deg, rgba(126, 246, 196, 0.08), transparent 62%),
+			rgba(0, 0, 0, 0.14);
+		box-shadow:
+			0 0 0 1px rgba(237, 255, 247, 0.05) inset,
+			0 0 16px rgba(71, 223, 155, 0.18),
+			0 12px 30px rgba(0, 0, 0, 0.28);
+		color: #edfff7;
+		opacity: var(--scroll-hint-opacity);
+		pointer-events: auto;
+		text-decoration: none;
+		transform: translateX(-50%);
+		transition:
+			border-color 180ms ease,
+			opacity 220ms ease,
+			box-shadow 180ms ease,
+			transform 180ms ease;
+		will-change: opacity, transform;
+	}
+
+	.hero__scroll-hint:hover {
+		border-color: rgba(237, 255, 247, 0.86);
+		box-shadow:
+			0 0 0 1px rgba(237, 255, 247, 0.08) inset,
+			0 0 22px rgba(71, 223, 155, 0.28),
+			0 16px 34px rgba(0, 0, 0, 0.36);
+		transform: translateX(-50%) translateY(-2px);
+	}
+
+	.hero__scroll-wheel {
+		width: 0.32rem;
+		height: 0.68rem;
+		border-radius: 999px;
+		background: #7ef6c4;
+		box-shadow:
+			0 0 12px rgba(126, 246, 196, 0.82),
+			0 0 22px rgba(71, 223, 155, 0.32);
+		animation: hero-scroll-wheel 2s ease-in-out infinite;
+		transform: translateY(34%);
+	}
+
+	.hero__scroll-label {
+		position: absolute;
+		top: calc(100% + 0.52rem);
+		left: 50%;
+		color: rgba(237, 255, 247, 0.72);
+		font-family: "IBM Plex Mono", monospace;
+		font-size: 0.58rem;
+		font-weight: 700;
+		letter-spacing: 0.16em;
+		line-height: 1;
+		text-transform: uppercase;
+		transform: translateX(-50%);
+	}
+
 	.hero__caption {
 		margin: 0;
 		color: #d9e3f6;
@@ -742,9 +819,24 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		}
 	}
 
+	@keyframes hero-scroll-wheel {
+		0%,
+		100% {
+			opacity: 0.72;
+			transform: translateY(34%);
+		}
+
+		50% {
+			opacity: 1;
+			transform: translateY(92%);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
-		.topbar__cta {
+		.topbar__cta,
+		.hero__scroll-wheel {
 			transition: linear;
+			animation: none;
 		}
 	}
 
@@ -906,6 +998,19 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		.hero__footer {
 			grid-template-columns: 1fr;
 			gap: 1.25rem;
+		}
+
+		.hero__scroll-hint {
+			bottom: 1.35rem;
+			left: auto;
+			right: 1.25rem;
+			width: 1.7rem;
+			height: 2.85rem;
+			transform: none;
+		}
+
+		.hero__scroll-hint:hover {
+			transform: translateY(-2px);
 		}
 
 		.hero__caption--end {

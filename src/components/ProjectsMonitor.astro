@@ -78,7 +78,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		</div>
 
 		<div class="projects-monitor__footer">
-			<p class="projects-monitor__footer-scroll">SCROLL</p>
 			<strong class="projects-monitor__footer-year" data-project-year>{projectEntries[0]?.year ?? ""}</strong>
 		</div>
 	</div>
@@ -819,8 +818,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 	.projects-monitor__copy-category,
 	.projects-monitor__meta p,
-	.projects-monitor__footer p,
-	.projects-monitor__footer-scroll {
+	.projects-monitor__footer p {
 		margin: 0;
 		font-family: "Inter", sans-serif;
 		font-size: 0.86rem;
@@ -866,11 +864,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		letter-spacing: 0;
 		text-transform: uppercase;
 		color: #f0ece4;
-	}
-
-	.projects-monitor__footer-scroll {
-		align-self: center;
-		justify-self: center;
 	}
 
 	@media (max-width: 1200px) {
@@ -928,18 +921,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			right: 1rem;
 			bottom: 1rem;
 			grid-template-columns: 1fr auto;
-			grid-template-areas:
-				". year"
-				"scroll scroll";
 		}
 
 		.projects-monitor__footer-year {
-			grid-area: year;
 			justify-self: end;
-		}
-
-		.projects-monitor__footer-scroll {
-			grid-area: scroll;
 		}
 	}
 
@@ -998,8 +983,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 		.projects-monitor__copy-category,
 		.projects-monitor__meta p,
-		.projects-monitor__footer p,
-		.projects-monitor__footer-scroll {
+		.projects-monitor__footer p {
 			font-size: 0.64rem;
 			letter-spacing: 0.12em;
 		}

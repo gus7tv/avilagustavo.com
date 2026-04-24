@@ -63,6 +63,9 @@
 			headlineScrollVh: 14,
 			particleSize: 0.351,
 			particleToneMix: 1,
+			mouseDistortionRadius: 5.6,
+			mouseDistortionStrength: 2.8,
+			mouseDistortionSwirl: 1.15,
 			vortexOpenStart: 0.284,
 			vortexOpenEnd: 0.45,
 			coreFinal: 11.5,
@@ -359,9 +362,14 @@
 
 		const pointer = { x: 0, y: 0 };
 		const pointerTarget = { x: 0, y: 0 };
+		const pointerVelocity = { x: 0, y: 0 };
+		const pointerVelocityTarget = { x: 0, y: 0 };
 		const state = { progress: 0, targetProgress: 0, rawProgress: 0 };
 		let frameId = 0;
 		let isSceneVisible = true;
+		let pointerInfluence = 0;
+		let pointerInfluenceTarget = 0;
+		let lastPointerEvent = null;
 		let visibilityObserver = null;
 		let lenis = null;
 		let lenisRafId = 0;
@@ -374,6 +382,7 @@
 			const projectsEnter = smoothstep(tuning.projectsEnterStart, tuning.projectsEnterEnd, progress);
 			const heroOpacity = 1 - smoothstep(0.56, 0.76, progress);
 			const projectsOpacity = smoothstep(0.58, 0.78, progress);
+			const scrollHintOpacity = 1 - smoothstep(0.74, 0.92, progress);
 			const projectsProgress = smoothstep(0.74, 1, progress);
 			const projectsReveal = lerp(0, tuning.projectRevealMax, smoothstep(tuning.projectRevealStart, tuning.projectRevealEnd, progress));
 			const projectsRevealEdge = Math.min(170, projectsReveal + tuning.projectRevealFeather);
@@ -385,6 +394,7 @@
 			stage.style.setProperty('--hero-scale', lerp(1, 0.86, heroExit).toFixed(3));
 			stage.style.setProperty('--hero-headline-offset', `${tuning.headlineBaseRem.toFixed(3)}rem`);
 			stage.style.setProperty('--hero-headline-scroll-y', `${lerp(0, tuning.headlineScrollVh, vortexOpen).toFixed(3)}vh`);
+			stage.style.setProperty('--scroll-hint-opacity', scrollHintOpacity.toFixed(3));
 			stage.style.setProperty('--projects-opacity', projectsOpacity.toFixed(3));
 			stage.style.setProperty('--projects-y', `${lerp(18, 0, projectsEnter).toFixed(3)}vh`);
 			stage.style.setProperty('--projects-z', `${lerp(-720, 0, projectsEnter).toFixed(3)}px`);
@@ -525,6 +535,9 @@
 				const particleFolder = gui.addFolder('Particles');
 				addNumber(particleFolder, 'particleSize', 0.02, 0.8, 0.001, 'size');
 				addNumber(particleFolder, 'particleToneMix', 0, 1, 0.001, 'tone mix');
+				addNumber(particleFolder, 'mouseDistortionRadius', 1, 14, 0.01, 'mouse radius');
+				addNumber(particleFolder, 'mouseDistortionStrength', 0, 8, 0.01, 'mouse strength');
+				addNumber(particleFolder, 'mouseDistortionSwirl', 0, 4, 0.01, 'mouse swirl');
 				addNumber(particleFolder, 'vortexOpenStart', 0, 1, 0.001, 'open start');
 				addNumber(particleFolder, 'vortexOpenEnd', 0, 1, 0.001, 'open end');
 				addNumber(particleFolder, 'coreFinal', 0, 28, 0.01, 'core radius');
@@ -624,13 +637,32 @@
 
 		const onPointerMove = (event) => {
 			const rect = container.getBoundingClientRect();
-			pointerTarget.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-			pointerTarget.y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+			if (!rect.width || !rect.height) return;
+			const nextX = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+			const nextY = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+
+			if (lastPointerEvent) {
+				pointerVelocityTarget.x = clamp(nextX - lastPointerEvent.x, -0.4, 0.4);
+				pointerVelocityTarget.y = clamp(nextY - lastPointerEvent.y, -0.4, 0.4);
+			}
+
+			lastPointerEvent = { x: nextX, y: nextY };
+			pointerInfluenceTarget = 1;
+			pointerTarget.x = nextX;
+			pointerTarget.y = nextY;
+		};
+
+		const onPointerLeave = () => {
+			lastPointerEvent = null;
+			pointerInfluenceTarget = 0;
+			pointerVelocityTarget.x = 0;
+			pointerVelocityTarget.y = 0;
 		};
 
 		window.addEventListener('scroll', updateScrollProgress, { passive: true });
 		window.addEventListener('resize', resize);
 		stage.addEventListener('pointermove', onPointerMove, { passive: true });
+		stage.addEventListener('pointerleave', onPointerLeave);
 
 		const resizeObserver = new ResizeObserver(resize);
 		resizeObserver.observe(container);
@@ -662,6 +694,11 @@
 			state.progress += (state.targetProgress - state.progress) * progressEase;
 			pointer.x += (pointerTarget.x - pointer.x) * 0.045;
 			pointer.y += (pointerTarget.y - pointer.y) * 0.045;
+			pointerVelocity.x += (pointerVelocityTarget.x - pointerVelocity.x) * 0.16;
+			pointerVelocity.y += (pointerVelocityTarget.y - pointerVelocity.y) * 0.16;
+			pointerInfluence += (pointerInfluenceTarget - pointerInfluence) * 0.08;
+			pointerVelocityTarget.x *= 0.9;
+			pointerVelocityTarget.y *= 0.9;
 
 			const easedProgress = smoothstep(0, 1, state.progress);
 			camera.position.x = pointer.x * (isMobile ? 0.55 : 1.3);
@@ -688,6 +725,14 @@
 				const streakPresence = clamp(speedStretch + tuning.streakBaseLength * 0.9, 0, 1);
 				const lateOpen = smoothstep(0.5, tuning.particleFadeEnd, state.progress);
 				const coreRadius = lerp(baseCoreRadius, tuning.coreFinal, vortexOpen);
+				const mouseFieldPresence =
+					pointerInfluence *
+					Math.max(particlePresence, streakPresence * 0.78) *
+					(1 - smoothstep(0.92, 2, state.progress));
+				const mouseFieldRadius = Math.max(0.1, tuning.mouseDistortionRadius) * lerp(1, 2.8, speedStretch);
+				const mouseFieldX = pointer.x * (isMobile ? 7.6 : 12.8) - tuning.vortexX;
+				const mouseFieldY = -pointer.y * (isMobile ? 5.2 : 7.6) - tuning.vortexY;
+				const mouseSpeed = clamp(Math.hypot(pointerVelocity.x, pointerVelocity.y) * 18, 0, 1);
 
 				for (let index = 0; index < particleCount; index += 1) {
 					const dataIndex = index * 3;
@@ -718,28 +763,53 @@
 					const tangentY = Math.cos(swirl) * 0.64;
 					const radialX = Math.cos(swirl);
 					const radialY = Math.sin(swirl) * 0.64;
+					const mouseDeltaX = x - mouseFieldX;
+					const mouseDeltaY = y - mouseFieldY;
+					const mouseDistance = Math.hypot(mouseDeltaX, mouseDeltaY);
+					const mouseFalloff = 1 - smoothstep(0, mouseFieldRadius, mouseDistance);
+					const depthFocus = lerp(1, 0.42, smoothstep(0.45, 0.98, depthProgress));
+					const mouseField = mouseFalloff * mouseFieldPresence * depthFocus;
+					const safeMouseDistance = Math.max(mouseDistance, 0.001);
+					const mouseNormalX = mouseDeltaX / safeMouseDistance;
+					const mouseNormalY = mouseDeltaY / safeMouseDistance;
+					const mouseTangentX = -mouseNormalY;
+					const mouseTangentY = mouseNormalX;
+					const mousePush =
+						mouseField *
+						tuning.mouseDistortionStrength *
+						(0.58 + mouseSpeed * 0.64) *
+						(1 + Math.sin(elapsed * 3.2 + particleSeeds[index] * 6.28) * 0.08);
+					const mouseSwirl = mouseField * tuning.mouseDistortionSwirl * (0.6 + mouseSpeed * 1.35);
+					const distortedX = x + mouseNormalX * mousePush + mouseTangentX * mouseSwirl;
+					const distortedY = y + mouseNormalY * mousePush + mouseTangentY * mouseSwirl;
 					const streakLength = lerp(tuning.streakBaseLength, tuning.streakMaxLength, speedStretch) * lerp(0.8, 1.35, depthProgress);
 					const streakPull = lerp(0.28, 1.15, speedStretch);
-					const tailX = x - (tangentX * 0.62 + radialX * streakPull) * streakLength;
-					const tailY = y - (tangentY * 0.62 + radialY * streakPull) * streakLength;
-					const tailZ = depth + lerp(0.05, 1.65, speedStretch);
+					const tailX =
+						distortedX -
+						(tangentX * 0.62 + radialX * streakPull + mouseNormalX * mouseField * 1.4) *
+							streakLength;
+					const tailY =
+						distortedY -
+						(tangentY * 0.62 + radialY * streakPull + mouseNormalY * mouseField * 1.4) *
+							streakLength;
+					const tailZ = depth + lerp(0.05, 1.65 + mouseField * 1.2, speedStretch);
 					const glow = 0.22 + smoothstep(0.18, 0.78, depthProgress) * 0.54 + speedStretch * 0.22;
 					const toneSeed = particleSeeds[index];
 					const cyanTone = 0.5 + Math.sin(toneSeed * Math.PI * 2 + particleOffsets[index]) * 0.5;
 					const emeraldTone = 0.5 + Math.sin(toneSeed * 12.7 + depth * 0.04) * 0.5;
 					const whiteSpark = smoothstep(0.86, 1, toneSeed);
 					const red = clamp(
-						0.18 + glow * 0.42 + tuning.particleToneMix * (whiteSpark * 0.22 - cyanTone * 0.08),
+						0.18 + glow * 0.42 + mouseField * 0.18 + tuning.particleToneMix * (whiteSpark * 0.22 - cyanTone * 0.08),
 						0,
 						1,
 					);
 					const green = clamp(
-						0.64 + glow * 0.34 + tuning.particleToneMix * (emeraldTone * 0.16 + whiteSpark * 0.12),
+						0.64 + glow * 0.34 + mouseField * 0.22 + tuning.particleToneMix * (emeraldTone * 0.16 + whiteSpark * 0.12),
 						0,
 						1,
 					);
 					const blue = clamp(
-						0.48 + glow * 0.46 + tuning.particleToneMix * (cyanTone * 0.24 + whiteSpark * 0.18 - emeraldTone * 0.06),
+						0.48 + glow * 0.46 + mouseField * 0.1 + tuning.particleToneMix * (cyanTone * 0.24 + whiteSpark * 0.18 - emeraldTone * 0.06),
 						0,
 						1,
 					);
@@ -750,8 +820,8 @@
 						particlePresence *
 						smoothstep(0, 0.24, particleRadius[index]);
 
-					data[dataIndex] = x;
-					data[dataIndex + 1] = y;
+					data[dataIndex] = distortedX;
+					data[dataIndex + 1] = distortedY;
 					data[dataIndex + 2] = depth;
 					colorData[dataIndex] = red;
 					colorData[dataIndex + 1] = green;
@@ -845,6 +915,7 @@
 			window.removeEventListener('scroll', updateScrollProgress);
 			window.removeEventListener('resize', resize);
 			stage.removeEventListener('pointermove', onPointerMove);
+			stage.removeEventListener('pointerleave', onPointerLeave);
 			resizeObserver.disconnect();
 			visibilityObserver?.disconnect();
 			destroyLenis();
