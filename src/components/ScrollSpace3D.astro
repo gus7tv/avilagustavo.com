@@ -302,6 +302,11 @@
 		const pointerVelocityTarget = { x: 0, y: 0 };
 		const pointerNdc = new THREE.Vector2();
 		const pointerRaycaster = new THREE.Raycaster();
+		const pointerRayOriginWorld = new THREE.Vector3();
+		const pointerRayPointWorld = new THREE.Vector3();
+		const pointerRayOriginLocal = new THREE.Vector3();
+		const pointerRayPointLocal = new THREE.Vector3();
+		const pointerRayDirectionLocal = new THREE.Vector3();
 		const mouseFieldWorld = new THREE.Vector3();
 		const mouseFieldLocal = new THREE.Vector3();
 		const vortexWorld = new THREE.Vector3();
@@ -669,6 +674,16 @@
 			particleCloud.updateMatrixWorld();
 			pointerNdc.set(pointer.x, -pointer.y);
 			pointerRaycaster.setFromCamera(pointerNdc, camera);
+			pointerRayOriginWorld.copy(pointerRaycaster.ray.origin);
+			pointerRayPointWorld.copy(pointerRaycaster.ray.origin).addScaledVector(pointerRaycaster.ray.direction, 1);
+			pointerRayOriginLocal.copy(pointerRayOriginWorld);
+			pointerRayPointLocal.copy(pointerRayPointWorld);
+			particleCloud.worldToLocal(pointerRayOriginLocal);
+			particleCloud.worldToLocal(pointerRayPointLocal);
+			pointerRayDirectionLocal
+				.copy(pointerRayPointLocal)
+				.sub(pointerRayOriginLocal)
+				.normalize();
 			particleCloud.getWorldPosition(vortexWorld);
 			camera.getWorldDirection(vortexPlaneNormal);
 			vortexPlane.setFromNormalAndCoplanarPoint(vortexPlaneNormal, vortexWorld);
@@ -730,8 +745,21 @@
 					const tangentY = Math.cos(swirl) * 0.64;
 					const radialX = Math.cos(swirl);
 					const radialY = Math.sin(swirl) * 0.64;
-					const mouseDeltaX = x - mouseFieldX;
-					const mouseDeltaY = y - mouseFieldY;
+					const depthRayDenominator = pointerRayDirectionLocal.z;
+					const depthRayT =
+						Math.abs(depthRayDenominator) > 0.0001
+							? (depth - pointerRayOriginLocal.z) / depthRayDenominator
+							: Number.NaN;
+					const particleMouseFieldX =
+						Number.isFinite(depthRayT) && depthRayT > 0
+							? pointerRayOriginLocal.x + pointerRayDirectionLocal.x * depthRayT
+							: mouseFieldX;
+					const particleMouseFieldY =
+						Number.isFinite(depthRayT) && depthRayT > 0
+							? pointerRayOriginLocal.y + pointerRayDirectionLocal.y * depthRayT
+							: mouseFieldY;
+					const mouseDeltaX = x - particleMouseFieldX;
+					const mouseDeltaY = y - particleMouseFieldY;
 					const mouseDistance = Math.hypot(mouseDeltaX, mouseDeltaY);
 					const mouseFalloff = 1 - smoothstep(0, mouseFieldRadius, mouseDistance);
 					const depthFocus = lerp(1, 0.42, smoothstep(0.45, 0.98, depthProgress));

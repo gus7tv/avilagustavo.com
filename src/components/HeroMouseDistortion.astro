@@ -52,34 +52,34 @@
 			delta.x *= aspect;
 
 			float distanceFromMouse = length(delta);
-			float wake = smoothstep(0.22, 0.0, distanceFromMouse);
-			float lens = smoothstep(0.105, 0.0, distanceFromMouse);
-			float ringA = 1.0 - smoothstep(0.005, 0.022, abs(distanceFromMouse - 0.058));
-			float ringB = 1.0 - smoothstep(0.008, 0.034, abs(distanceFromMouse - 0.115));
+			float wake = smoothstep(0.19, 0.0, distanceFromMouse);
+			float lens = smoothstep(0.096, 0.0, distanceFromMouse);
+			float ringA = 1.0 - smoothstep(0.005, 0.022, abs(distanceFromMouse - 0.054));
+			float ringB = 1.0 - smoothstep(0.008, 0.033, abs(distanceFromMouse - 0.108));
 			float velocityAmount = clamp(length(uVelocity) * 9.0, 0.0, 1.0);
 			float ripple = sin(distanceFromMouse * 74.0 - uTime * 4.2) * 0.5 + 0.5;
 			float grain = noise(uv * vec2(32.0, 18.0) + uTime * 0.35);
 
 			vec2 direction = normalize(delta + vec2(0.0001));
 			float directionalGlint = max(0.0, dot(direction, normalize(vec2(uVelocity.x * aspect, uVelocity.y) + vec2(0.001))));
-			float scanShear = sin((uv.y + ripple * 0.018 + uTime * 0.04) * uResolution.y * 0.55) * 0.5 + 0.5;
-			float caustic = pow(lens, 1.7) * (0.55 + ripple * 0.45);
+			float scanShear = sin((uv.y + ripple * 0.022 + uTime * 0.04) * uResolution.y * 0.55) * 0.5 + 0.5;
+			float caustic = pow(lens, 1.5) * (0.58 + ripple * 0.42);
 			float contour = max(ringA * 0.9, ringB * 0.34);
 			float flow = directionalGlint * wake * velocityAmount;
-			float mask = clamp(caustic * 0.55 + contour + flow * 0.62, 0.0, 1.0);
+			float mask = clamp(caustic * 0.7 + contour * 1.08 + flow * 0.7, 0.0, 1.0);
 
 			vec3 emerald = vec3(0.1, 0.98, 0.62);
 			vec3 mint = vec3(0.74, 1.0, 0.88);
 			vec3 coldWhite = vec3(0.95, 1.0, 0.97);
 			vec3 color = mix(emerald, mint, ripple);
-			color = mix(color, coldWhite, ringA * 0.58 + scanShear * lens * 0.16);
-			color += vec3(0.0, 0.23, 0.12) * flow;
+			color = mix(color, coldWhite, ringA * 0.68 + scanShear * lens * 0.22);
+			color += vec3(0.0, 0.28, 0.14) * flow;
 			color -= vec3(0.08, 0.0, 0.12) * (1.0 - scanShear) * lens;
-			color += (grain - 0.5) * 0.055;
+			color += (grain - 0.5) * 0.05;
 
 			float alpha = mask * uIntensity * uHeroOpacity;
-			alpha *= 0.42 + velocityAmount * 0.34;
-			alpha = clamp(alpha, 0.0, 0.58);
+			alpha *= 0.56 + velocityAmount * 0.3;
+			alpha = clamp(alpha, 0.0, 0.82);
 
 			gl_FragColor = vec4(color, alpha);
 		}
@@ -161,9 +161,9 @@
 				const dx = (event.clientX - lastPointer.x) / rect.width;
 				const dy = -(event.clientY - lastPointer.y) / rect.height;
 				velocityTarget.set(dx, dy);
-				targetIntensity = clamp(targetIntensity + Math.hypot(dx, dy) * 24, 0.22, 1);
+				targetIntensity = clamp(targetIntensity + Math.hypot(dx, dy) * 26, 0.34, 1);
 			} else {
-				targetIntensity = 0.34;
+				targetIntensity = 0.46;
 			}
 
 			lastPointer = { x: event.clientX, y: event.clientY };
@@ -267,7 +267,7 @@
 		overflow: hidden;
 		pointer-events: none;
 		mix-blend-mode: screen;
-		opacity: 0.95;
+		opacity: 1;
 		contain: strict;
 	}
 
