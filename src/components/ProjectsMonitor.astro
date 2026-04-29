@@ -28,10 +28,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	class="projects-monitor"
 	data-project-monitor
 	data-project-count={projectEntries.length}
-	aria-label="Proyectos destacados"
+	aria-label="Featured projects"
 >
 	<div class="projects-monitor__hud">
-		<span>PROYECTOS DESTACADOS</span>
+		<span>FEATURED PROJECTS</span>
 		<span>SELECTION — 2022 / 2026</span>
 	</div>
 
@@ -43,7 +43,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			href={projectEntries[0]?.url ?? "#"}
 			target="_blank"
 			rel="noreferrer"
-			aria-label={`Abrir proyecto ${projectEntries[0]?.title ?? "activo"}`}
+			aria-label={`Open project ${projectEntries[0]?.title ?? "active"}`}
 		></a>
 
 		<div class="projects-monitor__frame-line projects-monitor__frame-line--bottom" aria-hidden="true"></div>
@@ -532,7 +532,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				monitorLink.href = projectEntries[activeIndex]?.url ?? "#";
 				monitorLink.setAttribute(
 					"aria-label",
-					`Abrir proyecto ${projectEntries[activeIndex]?.title ?? "activo"}`
+					`Open project ${projectEntries[activeIndex]?.title ?? "active"}`
 				);
 
 				const progressDelta = Math.abs(projectsProgress - lastProgress);

@@ -61,7 +61,7 @@
 			scrollEnd: 0.95,
 			headlineBaseRem: 3.15,
 			headlineScrollVh: 14,
-			particleSize: 0.351,
+			particleSize: 0.296,
 			particleToneMix: 1,
 			mouseDistortionRadius: 5.6,
 			mouseDistortionStrength: 2.8,
@@ -74,8 +74,6 @@
 			depthPush: 0,
 			stretchStart: 0.393,
 			stretchPeak: 0.75,
-			streakBaseLength: 0.54,
-			streakMaxLength: 3,
 			stretchFadeStart: 0.43,
 			stretchFadeEnd: 1,
 			particleFadeStart: 0.62,
@@ -89,14 +87,14 @@
 			projectsEnterStart: 0.52,
 			projectsEnterEnd: 0.78,
 			postprocessingEnabled: true,
-			bloomStrength: 0.97,
-			bloomRadius: 0,
-			bloomThreshold: 0.13,
-			chromaAmount: 0.0004,
-			chromaStart: 0,
-			chromaPeak: 0.1,
-			chromaFadeStart: 0.3,
-			chromaFadeEnd: 0.76,
+			bloomStrength: 2.066,
+			bloomRadius: 1,
+			bloomThreshold: 0.899,
+			chromaAmount: 0.006,
+			chromaStart: 1,
+			chromaPeak: 0.346,
+			chromaFadeStart: 0.237,
+			chromaFadeEnd: 0.875,
 			lenisEnabled: true,
 			lenisLerp: 0.17,
 			lenisWheelMultiplier: 0.596,
@@ -175,38 +173,6 @@
 		return new THREE.CanvasTexture(canvas);
 	}
 
-	function buildStreakMaterial() {
-		return new THREE.ShaderMaterial({
-			uniforms: {
-				uOpacity: { value: 0.72 },
-			},
-			vertexShader: `
-				attribute vec3 color;
-				attribute float alpha;
-				varying vec3 vColor;
-				varying float vAlpha;
-
-				void main() {
-					vColor = color;
-					vAlpha = alpha;
-					gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-				}
-			`,
-			fragmentShader: `
-				uniform float uOpacity;
-				varying vec3 vColor;
-				varying float vAlpha;
-
-				void main() {
-					gl_FragColor = vec4(vColor, vAlpha * uOpacity);
-				}
-			`,
-			transparent: true,
-			blending: THREE.AdditiveBlending,
-			depthWrite: false,
-		});
-	}
-
 	async function mountScrollSpace(container) {
 		if (container.dataset.ready === 'true') return;
 		container.dataset.ready = 'true';
@@ -277,9 +243,6 @@
 		const particleCount = isMobile ? 1500 : 3600;
 		const positions = new Float32Array(particleCount * 3);
 		const colors = new Float32Array(particleCount * 3);
-		const streakPositions = new Float32Array(particleCount * 2 * 3);
-		const streakColors = new Float32Array(particleCount * 2 * 3);
-		const streakAlpha = new Float32Array(particleCount * 2);
 		const particleAngles = new Float32Array(particleCount);
 		const particleRadius = new Float32Array(particleCount);
 		const particleDepth = new Float32Array(particleCount);
@@ -291,8 +254,6 @@
 
 		for (let index = 0; index < particleCount; index += 1) {
 			const dataIndex = index * 3;
-			const streakIndex = index * 6;
-			const alphaIndex = index * 2;
 			const angle = Math.random() * Math.PI * 2;
 			const depth = lerp(zStart, zEnd, Math.random());
 			const radius = lerp(1.1, isMobile ? 9.8 : 13.2, Math.pow(Math.random(), 0.62));
@@ -309,30 +270,11 @@
 			colors[dataIndex] = 0.24;
 			colors[dataIndex + 1] = 0.92;
 			colors[dataIndex + 2] = 0.66;
-
-			streakPositions[streakIndex] = positions[dataIndex];
-			streakPositions[streakIndex + 1] = positions[dataIndex + 1];
-			streakPositions[streakIndex + 2] = depth;
-			streakPositions[streakIndex + 3] = positions[dataIndex];
-			streakPositions[streakIndex + 4] = positions[dataIndex + 1];
-			streakPositions[streakIndex + 5] = depth;
-			streakColors[streakIndex] = 0.1;
-			streakColors[streakIndex + 1] = 0.58;
-			streakColors[streakIndex + 2] = 0.42;
-			streakColors[streakIndex + 3] = 0.42;
-			streakColors[streakIndex + 4] = 1;
-			streakColors[streakIndex + 5] = 0.78;
-			streakAlpha[alphaIndex] = 0;
-			streakAlpha[alphaIndex + 1] = 0.46;
 		}
 
 		const particleGeometry = new THREE.BufferGeometry();
 		particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 		particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-		const streakGeometry = new THREE.BufferGeometry();
-		streakGeometry.setAttribute('position', new THREE.BufferAttribute(streakPositions, 3));
-		streakGeometry.setAttribute('color', new THREE.BufferAttribute(streakColors, 3));
-		streakGeometry.setAttribute('alpha', new THREE.BufferAttribute(streakAlpha, 1));
 
 		const particleMaterial = new THREE.PointsMaterial({
 			color: 0xedfff7,
@@ -352,18 +294,19 @@
 		particleCloud.rotation.set(-0.06, 0.04, -0.025);
 		particleCloud.position.x = tuning.vortexX;
 		particleCloud.position.y = tuning.vortexY;
-		const streakMaterial = buildStreakMaterial();
-		const streakCloud = new THREE.LineSegments(streakGeometry, streakMaterial);
-		streakCloud.rotation.copy(particleCloud.rotation);
-		streakCloud.position.x = tuning.vortexX;
-		streakCloud.position.y = tuning.vortexY;
-		scene.add(streakCloud);
 		scene.add(particleCloud);
 
 		const pointer = { x: 0, y: 0 };
 		const pointerTarget = { x: 0, y: 0 };
 		const pointerVelocity = { x: 0, y: 0 };
 		const pointerVelocityTarget = { x: 0, y: 0 };
+		const pointerNdc = new THREE.Vector2();
+		const pointerRaycaster = new THREE.Raycaster();
+		const mouseFieldWorld = new THREE.Vector3();
+		const mouseFieldLocal = new THREE.Vector3();
+		const vortexWorld = new THREE.Vector3();
+		const vortexPlaneNormal = new THREE.Vector3();
+		const vortexPlane = new THREE.Plane();
 		const state = { progress: 0, targetProgress: 0, rawProgress: 0 };
 		let frameId = 0;
 		let isSceneVisible = true;
@@ -544,8 +487,6 @@
 				addNumber(particleFolder, 'innerPush', 0, 36, 0.01, 'inner push');
 				addNumber(particleFolder, 'latePush', 0, 24, 0.01, 'late push');
 				addNumber(particleFolder, 'depthPush', -20, 30, 0.01, 'depth push');
-				addNumber(particleFolder, 'streakBaseLength', 0, 1, 0.001, 'streak base');
-				addNumber(particleFolder, 'streakMaxLength', 0, 8, 0.01, 'streak max');
 
 				const revealFolder = gui.addFolder('Reveal and fade');
 				addNumber(revealFolder, 'stretchStart', 0, 1, 0.001, 'stretch start');
@@ -709,35 +650,50 @@
 				-pointer.y * (isMobile ? 0.9 : 1.6),
 				lerp(-14, -74, easedProgress),
 			);
+			camera.updateMatrixWorld();
+			particleCloud.position.x = tuning.vortexX;
+			particleCloud.position.y = tuning.vortexY;
+			particleCloud.rotation.y = 0.04 + Math.sin(elapsed * 0.12) * 0.012;
+			particleCloud.rotation.z = -0.025 + Math.cos(elapsed * 0.09) * 0.006;
+			particleCloud.updateMatrixWorld();
+			pointerNdc.set(pointer.x, -pointer.y);
+			pointerRaycaster.setFromCamera(pointerNdc, camera);
+			particleCloud.getWorldPosition(vortexWorld);
+			camera.getWorldDirection(vortexPlaneNormal);
+			vortexPlane.setFromNormalAndCoplanarPoint(vortexPlaneNormal, vortexWorld);
+			const hasMouseFieldIntersection = Boolean(pointerRaycaster.ray.intersectPlane(vortexPlane, mouseFieldWorld));
+
+			if (hasMouseFieldIntersection) {
+				mouseFieldLocal.copy(mouseFieldWorld);
+				particleCloud.worldToLocal(mouseFieldLocal);
+			}
 
 			if (!prefersReducedMotion) {
 				const data = particleGeometry.attributes.position.array;
 				const colorData = particleGeometry.attributes.color.array;
-				const streakData = streakGeometry.attributes.position.array;
-				const streakColorData = streakGeometry.attributes.color.array;
-				const streakAlphaData = streakGeometry.attributes.alpha.array;
 				const scrollPulse = state.progress * Math.PI * 2;
 				const vortexOpen = smoothstep(tuning.vortexOpenStart, tuning.vortexOpenEnd, state.progress);
 				const particlePresence = 1 - smoothstep(tuning.particleFadeStart, tuning.particleFadeEnd, state.progress);
 				const speedStretch =
 					smoothstep(tuning.stretchStart, tuning.stretchPeak, state.progress) *
 					(1 - smoothstep(tuning.stretchFadeStart, tuning.stretchFadeEnd, state.progress));
-				const streakPresence = clamp(speedStretch + tuning.streakBaseLength * 0.9, 0, 1);
 				const lateOpen = smoothstep(0.5, tuning.particleFadeEnd, state.progress);
 				const coreRadius = lerp(baseCoreRadius, tuning.coreFinal, vortexOpen);
 				const mouseFieldPresence =
 					pointerInfluence *
-					Math.max(particlePresence, streakPresence * 0.78) *
+					particlePresence *
 					(1 - smoothstep(0.92, 2, state.progress));
 				const mouseFieldRadius = Math.max(0.1, tuning.mouseDistortionRadius) * lerp(1, 2.8, speedStretch);
-				const mouseFieldX = pointer.x * (isMobile ? 7.6 : 12.8) - tuning.vortexX;
-				const mouseFieldY = -pointer.y * (isMobile ? 5.2 : 7.6) - tuning.vortexY;
+				const mouseFieldX = hasMouseFieldIntersection
+					? mouseFieldLocal.x
+					: pointer.x * (isMobile ? 7.6 : 12.8) - tuning.vortexX;
+				const mouseFieldY = hasMouseFieldIntersection
+					? mouseFieldLocal.y
+					: -pointer.y * (isMobile ? 5.2 : 7.6) - tuning.vortexY;
 				const mouseSpeed = clamp(Math.hypot(pointerVelocity.x, pointerVelocity.y) * 18, 0, 1);
 
 				for (let index = 0; index < particleCount; index += 1) {
 					const dataIndex = index * 3;
-					const streakIndex = index * 6;
-					const alphaIndex = index * 2;
 					const depth = particleDepth[index];
 					const depthProgress = clamp((zStart - depth) / (zStart - zEnd), 0, 1);
 					const swirl =
@@ -782,17 +738,6 @@
 					const mouseSwirl = mouseField * tuning.mouseDistortionSwirl * (0.6 + mouseSpeed * 1.35);
 					const distortedX = x + mouseNormalX * mousePush + mouseTangentX * mouseSwirl;
 					const distortedY = y + mouseNormalY * mousePush + mouseTangentY * mouseSwirl;
-					const streakLength = lerp(tuning.streakBaseLength, tuning.streakMaxLength, speedStretch) * lerp(0.8, 1.35, depthProgress);
-					const streakPull = lerp(0.28, 1.15, speedStretch);
-					const tailX =
-						distortedX -
-						(tangentX * 0.62 + radialX * streakPull + mouseNormalX * mouseField * 1.4) *
-							streakLength;
-					const tailY =
-						distortedY -
-						(tangentY * 0.62 + radialY * streakPull + mouseNormalY * mouseField * 1.4) *
-							streakLength;
-					const tailZ = depth + lerp(0.05, 1.65 + mouseField * 1.2, speedStretch);
 					const glow = 0.22 + smoothstep(0.18, 0.78, depthProgress) * 0.54 + speedStretch * 0.22;
 					const toneSeed = particleSeeds[index];
 					const cyanTone = 0.5 + Math.sin(toneSeed * Math.PI * 2 + particleOffsets[index]) * 0.5;
@@ -813,12 +758,6 @@
 						0,
 						1,
 					);
-					const streakTailShade = 0.48 + speedStretch * 0.08;
-					const streakHeadShade = 0.86 + speedStretch * 0.14;
-					const alpha =
-						(0.04 + streakPresence * 0.78) *
-						particlePresence *
-						smoothstep(0, 0.24, particleRadius[index]);
 
 					data[dataIndex] = distortedX;
 					data[dataIndex + 1] = distortedY;
@@ -826,39 +765,13 @@
 					colorData[dataIndex] = red;
 					colorData[dataIndex + 1] = green;
 					colorData[dataIndex + 2] = blue;
-					streakData[streakIndex] = tailX;
-					streakData[streakIndex + 1] = tailY;
-					streakData[streakIndex + 2] = tailZ;
-					streakData[streakIndex + 3] = x;
-					streakData[streakIndex + 4] = y;
-					streakData[streakIndex + 5] = depth;
-					streakColorData[streakIndex] = red * streakTailShade;
-					streakColorData[streakIndex + 1] = green * streakTailShade;
-					streakColorData[streakIndex + 2] = blue * streakTailShade;
-					streakColorData[streakIndex + 3] = red * streakHeadShade;
-					streakColorData[streakIndex + 4] = green * streakHeadShade;
-					streakColorData[streakIndex + 5] = blue * streakHeadShade;
-					streakAlphaData[alphaIndex] = 0.02 + alpha * 0.16;
-					streakAlphaData[alphaIndex + 1] = alpha;
 				}
 
 				particleGeometry.attributes.position.needsUpdate = true;
 				particleGeometry.attributes.color.needsUpdate = true;
-				streakGeometry.attributes.position.needsUpdate = true;
-				streakGeometry.attributes.color.needsUpdate = true;
-				streakGeometry.attributes.alpha.needsUpdate = true;
-				particleCloud.position.x = tuning.vortexX;
-				particleCloud.position.y = tuning.vortexY;
-				particleCloud.rotation.y = 0.04 + Math.sin(elapsed * 0.12) * 0.012;
-				particleCloud.rotation.z = -0.025 + Math.cos(elapsed * 0.09) * 0.006;
-				streakCloud.rotation.copy(particleCloud.rotation);
-				streakCloud.position.x = tuning.vortexX;
-				streakCloud.position.y = tuning.vortexY;
 				particleMaterial.size = tuning.particleSize;
 				particleMaterial.opacity = particlePresence;
 				particleCloud.visible = particlePresence > 0.01;
-				streakCloud.visible = particlePresence > 0.01 && streakPresence > 0.01;
-				streakMaterial.uniforms.uOpacity.value = lerp(0.16, 0.98, streakPresence) * particlePresence;
 			}
 
 			const fxStretch =
@@ -920,9 +833,7 @@
 			visibilityObserver?.disconnect();
 			destroyLenis();
 			particleGeometry.dispose();
-			streakGeometry.dispose();
 			particleMaterial.dispose();
-			streakMaterial.dispose();
 			particleSprite?.dispose();
 			composer?.dispose();
 			gui?.destroy();

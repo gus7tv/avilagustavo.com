@@ -1,23 +1,35 @@
 ---
 import BaseHead from "../components/BaseHead.astro";
+import HeroMouseDistortion from "../components/HeroMouseDistortion.astro";
+import ScrollSpace3D from "../components/ScrollSpace3D.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 ---
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 	<head>
-		<BaseHead title={`Gracias | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<BaseHead title={`Thank You | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
 	</head>
 	<body class="thank-you-page">
 		<div class="noise"></div>
-		<main class="thank-you-shell">
-			<section class="thank-you-card" aria-labelledby="thank-you-title">
-				<p class="thank-you-kicker">MENSAJE RECIBIDO</p>
-				<h1 id="thank-you-title">Gracias por escribir.</h1>
-				<p>
-					Estoy revisando tu información y me pondré en contacto contigo muy pronto.
-				</p>
-				<a class="button-outline" href="/">REGRESAR AL INICIO</a>
+		<main>
+			<section class="thank-you-hero" data-z-space data-active-panel="hero" aria-labelledby="thank-you-title">
+				<ScrollSpace3D />
+				<HeroMouseDistortion />
+
+				<div class="thank-you-hero__content">
+					<div class="thank-you-hero__headline">
+						<h1 id="thank-you-title">Thank You</h1>
+					</div>
+
+					<div class="thank-you-hero__message">
+						<p class="thank-you-hero__kicker">MESSAGE RECEIVED</p>
+						<p>
+							I'm reviewing your details and I'll get back to you very soon.
+						</p>
+						<a class="button-outline" href="/">BACK TO HOME</a>
+					</div>
+				</div>
 			</section>
 		</main>
 	</body>
@@ -25,56 +37,118 @@ import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 
 <style>
 	.thank-you-page {
-		min-height: 100vh;
-		background:
-			radial-gradient(circle at 50% 0%, rgba(71, 223, 155, 0.12), transparent 34rem),
-			linear-gradient(180deg, #020504 0%, #000 100%);
-		color: var(--text-secondary);
+		min-height: 100svh;
+		overflow: hidden;
+		background: #000;
+		color: #bdc7d9;
 	}
 
-	.thank-you-shell {
+	.thank-you-page::before {
+		content: "";
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background-image:
+			linear-gradient(rgba(71, 223, 155, 0.04) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(71, 223, 155, 0.04) 1px, transparent 1px);
+		background-size: 72px 72px, 72px 72px;
+	}
+
+	.thank-you-hero {
+		--hero-opacity: 1;
+		--hero-y: 0vh;
+		--hero-z: 0px;
+		--hero-tilt: 0deg;
+		--hero-scale: 1;
+		--projects-opacity: 0;
+		--projects-progress: 0;
+		position: relative;
+		z-index: 1;
+		min-height: 100svh;
+		overflow: hidden;
+		isolation: isolate;
+		perspective: 1200px;
+	}
+
+	.thank-you-hero::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.76)),
+			radial-gradient(circle at 50% 48%, rgba(71, 223, 155, 0.08), transparent 34rem);
+	}
+
+	.thank-you-hero__content {
+		position: relative;
+		z-index: 5;
+		display: grid;
+		align-content: center;
+		justify-items: center;
+		gap: clamp(1.4rem, 4vh, 2.4rem);
+		min-height: 100svh;
+		width: min(100% - clamp(2rem, 6vw, 5rem), 1280px);
+		margin-inline: auto;
+		padding: clamp(2rem, 5vh, 3.5rem) 0;
+		text-align: center;
+	}
+
+	.thank-you-hero__headline {
 		position: relative;
 		z-index: 2;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+
+	.thank-you-hero h1 {
+		margin: 0;
+		color: #f4f7fb;
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(5.2rem, 14vw, 12rem);
+		font-weight: 500;
+		line-height: 0.78;
+		letter-spacing: 0;
+		text-transform: uppercase;
+		text-shadow:
+			0 0 34px rgba(71, 223, 155, 0.16),
+			0 12px 56px rgba(0, 0, 0, 0.72);
+		user-select: none;
+	}
+
+	.thank-you-hero__message {
 		display: grid;
-		min-height: 100vh;
-		place-items: center;
-		padding: clamp(1.25rem, 4vw, 3rem);
+		justify-items: center;
+		gap: 1rem;
+		width: min(100%, 34rem);
 	}
 
-	.thank-you-card {
-		width: min(100%, 42rem);
-		padding: clamp(1.6rem, 5vw, 3rem);
-		border: 1px solid rgba(71, 223, 155, 0.14);
-		border-radius: 1.5rem;
-		background: rgba(0, 0, 0, 0.68);
-		box-shadow: 0 24px 90px rgba(0, 0, 0, 0.36);
-		backdrop-filter: blur(18px);
+	.thank-you-hero__message p {
+		margin: 0;
+		color: #d9e3f6;
+		font-size: 0.98rem;
+		line-height: 1.35;
 	}
 
-	.thank-you-kicker {
-		margin: 0 0 1rem;
-		color: var(--accent);
-		font-size: 0.78rem;
-		font-weight: 700;
+	.thank-you-hero__kicker {
+		color: #47df9b !important;
+		font-size: 0.78rem !important;
+		font-weight: 800;
 		letter-spacing: 0.16em;
 	}
 
-	.thank-you-card h1 {
-		margin: 0;
-		color: var(--text-primary);
-		font-family: "Bebas Neue", sans-serif;
-		font-size: clamp(4rem, 13vw, 8.6rem);
-		font-weight: 500;
-		line-height: 0.9;
-		letter-spacing: 0;
-		text-wrap: balance;
-	}
+	@media (max-width: 720px) {
+		.thank-you-hero__content {
+			width: min(100% - 2rem, 1280px);
+			gap: 1.25rem;
+		}
 
-	.thank-you-card p:not(.thank-you-kicker) {
-		max-width: 33rem;
-		margin: 1.25rem 0 1.8rem;
-		color: var(--text-muted);
-		font-size: 1rem;
-		line-height: 1.55;
+		.thank-you-hero h1 {
+			font-size: clamp(4.2rem, 20vw, 6.6rem);
+		}
 	}
 </style>

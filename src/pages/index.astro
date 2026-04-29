@@ -14,12 +14,12 @@ const projects = (await getCollection("proyectos"))
 const currentYear = new Date().getFullYear();
 
 const socialLinks = [
-	{ label: "GitHub", href: "https://github.com/tavoavilaa" },
+	{ label: "GitHub", href: "https://github.com/gus7tv" },
 	{
 		label: "LinkedIn",
 		href: "https://www.linkedin.com/in/gustavo-avila-2a153311b/",
 	},
-	{ label: "X", href: "https://x.com/tavoavilaa" },
+	{ label: "X", href: "https://x.com/gus7tv_" },
 ];
 
 const heroArrowPaths = ArrowRight.map(([, attrs]) => attrs);
@@ -27,7 +27,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 ---
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
 	</head>
@@ -50,7 +50,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 					</div>
 
 					<div class="topbar__actions">
-						<nav class="topbar__social" aria-label="Redes sociales">
+						<nav class="topbar__social" aria-label="Social links">
 							<a
 								class="topbar__social-link"
 								href="https://www.linkedin.com/in/gustavo-avila-2a153311b/"
@@ -71,7 +71,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 							</a>
 							<a
 								class="topbar__social-link"
-								href="https://github.com/tavoavilaa"
+								href="https://github.com/gus7tv"
 								target="_blank"
 								rel="noreferrer"
 								aria-label="GitHub"
@@ -89,7 +89,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 							</a>
 							<a
 								class="topbar__social-link"
-								href="https://x.com/tavoavilaa"
+								href="https://x.com/gus7tv_"
 								target="_blank"
 								rel="noreferrer"
 								aria-label="X"
@@ -109,7 +109,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 								</svg>
 							</a>
 						</nav>
-						<a href="#contacto" class="topbar__cta">Contacto</a>
+						<a href="#contacto" class="topbar__cta">Contact</a>
 					</div>
 				</header>
 
@@ -150,19 +150,19 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 								<div class="hero__footer">
 									<p class="hero__caption">
-										Cerrando la brecha entre<br />
-										diseño y desarrollo
+										Bridging the gap between<br />
+										design and development
 									</p>
 									<p class="hero__caption hero__caption--end">Based in Bogotá, Co</p>
 								</div>
 							</section>
 
-							<a class="hero__scroll-hint" href="#proyectos" aria-label="Ir a proyectos">
+							<a class="hero__scroll-hint" href="#proyectos" aria-label="Go to projects">
 								<span class="hero__scroll-wheel" aria-hidden="true"></span>
 								<span class="hero__scroll-label" aria-hidden="true">scroll</span>
 							</a>
 
-							<section class="section-block z-panel z-panel--projects" aria-label="Proyectos seleccionados">
+							<section class="section-block z-panel z-panel--projects" aria-label="Selected projects">
 								<ProjectsMonitor projects={projects} />
 							</section>
 						</div>
@@ -170,10 +170,10 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 					<section id="contacto" class="section-block section-block--contact">
 						<div class="contact-copy">
-							<h2>HABLEMOS</h2>
+							<h2>LET'S TALK</h2>
 							<p>
-								Si has llegado hasta aquí, me encantaría recibir un mensaje
-								con tu propuesta, idea o proyecto.
+								If you've made it this far, I'd love to hear from you
+								about your proposal, idea, or project.
 							</p>
 
 							<div class="contact-links">
@@ -196,36 +196,34 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 						>
 							<input type="hidden" name="form-name" value="contact" />
 							<label>
-								<span>Nombre</span>
-								<input type="text" name="nombre" placeholder="Tu nombre" autocomplete="name" required />
+								<span>Name</span>
+								<input type="text" name="nombre" placeholder="Your name" autocomplete="name" required />
 							</label>
 
 							<label>
-								<span>Correo electrónico</span>
+								<span>Email address</span>
 								<input
 									type="email"
 									name="correo"
-									placeholder="correo@dominio.com"
+									placeholder="email@domain.com"
 									autocomplete="email"
 									required
 								/>
 							</label>
 
 							<label>
-								<span>Mensaje</span>
+								<span>Message</span>
 								<textarea
 									name="mensaje"
 									rows="5"
-									placeholder="Cuéntame qué estás construyendo."
+									placeholder="Tell me what you're building."
 									required
 								></textarea>
 							</label>
 
 							<div data-netlify-recaptcha="true"></div>
 
-							<button class="topbar__cta contact-submit-button" type="submit">
-								ENVIAR MENSAJE
-							</button>
+							<button class="topbar__cta contact-submit-button" type="submit">SEND MESSAGE</button>
 						</form>
 					</section>
 				</main>
