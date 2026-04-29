@@ -17,6 +17,7 @@ const projectEntries = projects.map((project, index) => {
 			typeof project.data.heroImage === "string"
 				? project.data.heroImage
 				: project.data.heroImage.src,
+		previewVideo: project.data.previewVideo ?? null,
 		url: project.data.url,
 	};
 });
@@ -32,19 +33,35 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 >
 	<div class="projects-monitor__hud">
 		<span>FEATURED PROJECTS</span>
-		<span>SELECTION — 2022 / 2026</span>
+		<span class="projects-monitor__hud-counter">
+			<strong data-project-current>01</strong>
+			<small>{`/ ${totalProjectsLabel}`}</small>
+		</span>
 	</div>
 
 	<div class="projects-monitor__frame">
-		<div class="projects-monitor__monitor-stage" data-project-stage aria-hidden="true"></div>
 		<a
-			class="projects-monitor__monitor-link"
+			class="projects-monitor__media-link"
 			data-project-link
 			href={projectEntries[0]?.url ?? "#"}
 			target="_blank"
 			rel="noreferrer"
 			aria-label={`Open project ${projectEntries[0]?.title ?? "active"}`}
-		></a>
+		>
+			<div class="projects-monitor__media-shell" data-project-shell>
+				<div class="projects-monitor__media-layer" data-project-layer="base">
+					<img data-project-image alt="" decoding="async" />
+					<video data-project-video muted loop playsinline preload="auto" aria-hidden="true"></video>
+				</div>
+				<div class="projects-monitor__media-layer projects-monitor__media-layer--overlay" data-project-layer="overlay">
+					<img data-project-image alt="" decoding="async" />
+					<video data-project-video muted loop playsinline preload="auto" aria-hidden="true"></video>
+				</div>
+				<div class="projects-monitor__media-shade" aria-hidden="true"></div>
+				<div class="projects-monitor__media-noise" aria-hidden="true"></div>
+				<div class="projects-monitor__media-grid" aria-hidden="true"></div>
+			</div>
+		</a>
 
 		<div class="projects-monitor__frame-line projects-monitor__frame-line--bottom" aria-hidden="true"></div>
 		<div class="projects-monitor__ticks" aria-hidden="true">
@@ -55,364 +72,195 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			}
 		</div>
 
-		<div class="projects-monitor__index">
-			<strong data-project-current>01</strong>
-			<span>{`/ ${totalProjectsLabel}`}</span>
-		</div>
-
-		<div class="projects-monitor__meta">
-			<p data-project-role>{projectEntries[0]?.roleLine ?? ""}</p>
-		</div>
-
 		<div class="projects-monitor__copy-backdrop" aria-hidden="true"></div>
 
 		<div class="projects-monitor__copy-stack">
 			{
 				projectEntries.map((project, index) => (
 					<div class="projects-monitor__copy" data-project-copy data-copy-index={index}>
-						<p class="projects-monitor__copy-category">{project.category}</p>
 						<h3>{project.title}</h3>
+						<p class="projects-monitor__copy-role">{project.roleLine}</p>
 					</div>
 				))
 			}
 		</div>
 
-		<div class="projects-monitor__footer">
-			<strong class="projects-monitor__footer-year" data-project-year>{projectEntries[0]?.year ?? ""}</strong>
-		</div>
 	</div>
 </section>
 
 <script type="module" define:vars={{ projectEntries }}>
-	import * as THREE from "https://esm.sh/three@0.161.0";
-
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
-	const textureLoader = new THREE.TextureLoader();
-	const textureCache = new Map();
 
-	const makeTuningDefaults = () => ({
-		wrapOffsetY: 9,
-		wrapOffsetX: -27,
-		monitorScale: 0.86,
-		cameraY: -1.61,
-		cameraZ: 14.34,
-		lookAtY: -0.42,
-		lookAtZ: -0.75,
-		rigRotX: 0,
-		rigRotY: -0.51,
-		rigRotZ: -0.04,
-		rigPosY: -0.44,
-		rigPosX: 0.32,
-		hoverRotX: 0.17,
-		hoverRotY: 0.2,
-		hoverRotZ: -0.015,
-		hoverShiftX: 0.01,
-		hoverShiftY: 0.1,
-		cameraHoverX: 0.08,
-		cameraHoverY: -0.14,
-		hoverEase: 0.045,
-		floatAmount: 0.04,
-		floatSpeed: 1.02,
-		blendShift: 0.09,
-		blendScale: 0.023,
-		ambientIntensity: 0,
-		hemiIntensity: 0,
-		keyIntensity: 0,
-		rimIntensity: 14,
-	});
-
-	const createPlaceholderTexture = () => {
-		const canvas = document.createElement("canvas");
-		canvas.width = 32;
-		canvas.height = 32;
-		const context = canvas.getContext("2d");
-		if (context) {
-			const gradient = context.createLinearGradient(0, 0, 32, 32);
-			gradient.addColorStop(0, "#101217");
-			gradient.addColorStop(1, "#050505");
-			context.fillStyle = gradient;
-			context.fillRect(0, 0, 32, 32);
-		}
-		const texture = new THREE.CanvasTexture(canvas);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		return texture;
-	};
-
-	const placeholderTexture = createPlaceholderTexture();
-
-	const createGlowTexture = () => {
-		const canvas = document.createElement("canvas");
-		canvas.width = 256;
-		canvas.height = 256;
-		const context = canvas.getContext("2d");
-		if (context) {
-			const gradient = context.createRadialGradient(128, 128, 8, 128, 128, 128);
-			gradient.addColorStop(0, "rgba(160,255,222,0.95)");
-			gradient.addColorStop(0.25, "rgba(71,223,155,0.32)");
-			gradient.addColorStop(0.58, "rgba(71,223,155,0.08)");
-			gradient.addColorStop(1, "rgba(71,223,155,0)");
-			context.fillStyle = gradient;
-			context.fillRect(0, 0, 256, 256);
-		}
-		const texture = new THREE.CanvasTexture(canvas);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		return texture;
-	};
-
-	const loadTexture = async (src) => {
-		if (!src) return placeholderTexture;
-		if (textureCache.has(src)) return textureCache.get(src);
-		const texture = await textureLoader.loadAsync(src);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		texture.anisotropy = 4;
-		textureCache.set(src, texture);
-		return texture;
-	};
-
-	const mountProjectMonitor = async () => {
-		document.querySelectorAll("[data-project-monitor]").forEach(async (root) => {
+	const mountProjectMonitor = () => {
+		document.querySelectorAll("[data-project-monitor]").forEach((root) => {
 			if (root.dataset.ready === "true") return;
 			root.dataset.ready = "true";
 
 			const stage = root.closest("[data-z-space]");
 			const frame = root.querySelector(".projects-monitor__frame");
-			const sceneHost = root.querySelector("[data-project-stage]");
-			const monitorLink = root.querySelector("[data-project-link]");
+			const mediaLink = root.querySelector("[data-project-link]");
+			const shell = root.querySelector("[data-project-shell]");
 			const copies = [...root.querySelectorAll("[data-project-copy]")];
 			const currentLabel = root.querySelector("[data-project-current]");
-			const roleLabel = root.querySelector("[data-project-role]");
-			const yearLabel = root.querySelector("[data-project-year]");
+			const layers = [...root.querySelectorAll("[data-project-layer]")].map((element) => ({
+				element,
+				image: element.querySelector("[data-project-image]"),
+				video: element.querySelector("[data-project-video]"),
+				currentProjectKey: "",
+				videoReady: false,
+				cleanupReady: null,
+			}));
 
-			if (!stage || !frame || !sceneHost || !monitorLink) return;
+			if (!stage || !frame || !mediaLink || !shell || layers.length !== 2) return;
 
-			const tuning = makeTuningDefaults();
-			const rimLightTone = "#d7fff1";
-			const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
-			const pixelRatioCap = isMobileViewport ? 1.25 : 1.6;
-
-			const renderer = new THREE.WebGLRenderer({
-				alpha: true,
-				antialias: !isMobileViewport,
-				powerPreference: "high-performance",
-			});
-			renderer.setClearColor(0x000000, 0);
-			renderer.outputColorSpace = THREE.SRGBColorSpace;
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
-			sceneHost.appendChild(renderer.domElement);
-
-			const scene = new THREE.Scene();
-			const camera = new THREE.PerspectiveCamera(23, 1, 0.1, 40);
-			camera.position.set(0, 0.2, 13.2);
-
-			const glowTexture = createGlowTexture();
-
-			const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
-			scene.add(ambientLight);
-
-			const hemiLight = new THREE.HemisphereLight(0x90ffd6, 0x080808, 1.2);
-			hemiLight.position.set(0, 6, 0);
-			scene.add(hemiLight);
-
-			const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
-			keyLight.position.set(6, 8, 10);
-			scene.add(keyLight);
-
-			const rimLight = new THREE.PointLight(rimLightTone, 7, 24, 2);
-			rimLight.position.set(-6, 1.5, 7);
-			scene.add(rimLight);
-
-			const rig = new THREE.Group();
-			scene.add(rig);
-
-			const backdropMaterial = new THREE.MeshStandardMaterial({
-				color: 0x070908,
-				roughness: 0.92,
-				metalness: 0.06,
-			});
-			const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), backdropMaterial);
-			backdrop.position.set(0, -0.2, -6.8);
-			scene.add(backdrop);
-
-			const backdropGlow = new THREE.Mesh(
-				new THREE.PlaneGeometry(1, 1),
-				new THREE.MeshBasicMaterial({
-					map: glowTexture,
-					transparent: true,
-					opacity: 0.3,
-					depthWrite: false,
-					blending: THREE.AdditiveBlending,
-				})
-			);
-			backdropGlow.position.set(0, -0.35, -6.4);
-			scene.add(backdropGlow);
-
-			const shellMaterial = new THREE.MeshPhysicalMaterial({
-				color: 0x1c1b1c,
-				roughness: 0.48,
-				metalness: 0.72,
-				clearcoat: 0.65,
-				clearcoatRoughness: 0.2,
-			});
-			const trimMaterial = new THREE.MeshStandardMaterial({
-				color: 0x3d3937,
-				roughness: 0.38,
-				metalness: 0.64,
-			});
-			const standMaterial = new THREE.MeshStandardMaterial({
-				color: 0x201f20,
-				roughness: 0.62,
-				metalness: 0.42,
-			});
-			const glassMaterial = new THREE.MeshPhysicalMaterial({
-				color: 0xffffff,
-				transparent: true,
-				opacity: 0.08,
-				roughness: 0.14,
-				metalness: 0.18,
-				clearcoat: 1,
-				clearcoatRoughness: 0.1,
-			});
-
-			const shell = new THREE.Mesh(new THREE.BoxGeometry(8.8, 5.45, 0.7), shellMaterial);
-			rig.add(shell);
-
-			const screenGeometry = new THREE.PlaneGeometry(8.34, 5.08);
-			const screenBaseMaterial = new THREE.MeshBasicMaterial({
-				map: placeholderTexture,
-				toneMapped: false,
-			});
-			const screenOverlayMaterial = new THREE.MeshBasicMaterial({
-				map: placeholderTexture,
-				toneMapped: false,
-				transparent: true,
-				opacity: 0,
-			});
-			const screenBase = new THREE.Mesh(screenGeometry, screenBaseMaterial);
-			screenBase.position.z = 0.38;
-			rig.add(screenBase);
-
-			const screenOverlay = new THREE.Mesh(screenGeometry, screenOverlayMaterial);
-			screenOverlay.position.z = 0.385;
-			rig.add(screenOverlay);
-
-			const glass = new THREE.Mesh(screenGeometry.clone(), glassMaterial);
-			glass.position.z = 0.43;
-			rig.add(glass);
-
-			const neck = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.05, 0.48), standMaterial);
-			neck.position.set(0, -3.72, -0.06);
-			rig.add(neck);
-
-			const baseUpper = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.34, 0.84), trimMaterial);
-			baseUpper.position.set(0, -4.95, 0.02);
-			rig.add(baseUpper);
-
-			const baseLower = new THREE.Mesh(new THREE.BoxGeometry(3.7, 0.5, 1.35), standMaterial);
-			baseLower.position.set(0, -5.42, 0.04);
-			rig.add(baseLower);
-
-			const floorShadow = new THREE.Mesh(
-				new THREE.CircleGeometry(2.7, 48),
-				new THREE.MeshBasicMaterial({
-					color: 0x000000,
-					transparent: true,
-					opacity: 0.22,
-					blending: THREE.NormalBlending,
-				})
-			);
-			floorShadow.rotation.x = -Math.PI / 2;
-			floorShadow.position.set(0, -5.72, 0.28);
-			floorShadow.scale.set(1.55, 0.72, 1);
-			scene.add(floorShadow);
-
-			const textures = projectEntries.map(() => placeholderTexture);
-			projectEntries.forEach((project, index) => {
-				loadTexture(project.heroImage)
-					.then((texture) => {
-						textures[index] = texture;
-						requestRender();
-					})
-					.catch(() => {
-						textures[index] = placeholderTexture;
-						requestRender();
-					});
-			});
-
+			const baseLayer = layers[0];
+			const overlayLayer = layers[1];
 			const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-			const hoverTarget = { x: 0, y: 0 };
-			const hoverState = { x: 0, y: 0 };
+			const hoverTarget = { x: 0, y: 0, lift: 0 };
+			const hoverState = { x: 0, y: 0, lift: 0 };
+
 			let frameId = 0;
 			let lastProgress = -1;
 			let isMonitorVisible = true;
 			let visibilityObserver = null;
+			let activeVideoIndicesKey = "";
 
-			function requestRender() {
+			const requestRender = () => {
 				if (!isMonitorVisible || frameId) return;
 				frameId = window.requestAnimationFrame(render);
-			}
+			};
 
-			function stopRender() {
+			const stopRender = () => {
 				if (!frameId) return;
 				window.cancelAnimationFrame(frameId);
 				frameId = 0;
-			}
-
-			const applyTuning = () => {
-				ambientLight.intensity = tuning.ambientIntensity;
-				hemiLight.intensity = tuning.hemiIntensity;
-				keyLight.intensity = tuning.keyIntensity;
-				rimLight.intensity = tuning.rimIntensity;
 			};
 
-			applyTuning();
+			const pauseLayerVideo = (layer) => {
+				if (!layer.video) return;
+				layer.video.pause();
+			};
+
+			const teardownLayer = (layer) => {
+				pauseLayerVideo(layer);
+				layer.cleanupReady?.();
+				layer.cleanupReady = null;
+				layer.videoReady = false;
+			};
+
+			const updateLayerVisibility = (layer) => {
+				layer.element.dataset.videoReady = layer.videoReady ? "true" : "false";
+			};
+
+			const syncLayerProject = (layer, project) => {
+				if (!layer.image || !layer.video || !project) return;
+
+				const projectKey = `${project.index}:${project.previewVideo ?? project.heroImage}`;
+				if (layer.currentProjectKey === projectKey) return;
+
+				teardownLayer(layer);
+				layer.currentProjectKey = projectKey;
+				layer.image.src = project.heroImage;
+				layer.image.alt = `${project.title} preview`;
+				layer.image.loading = "eager";
+
+				if (!project.previewVideo) {
+					layer.video.removeAttribute("src");
+					layer.video.removeAttribute("poster");
+					layer.video.load();
+					updateLayerVisibility(layer);
+					return;
+				}
+
+				layer.video.poster = project.heroImage;
+				layer.video.muted = true;
+				layer.video.defaultMuted = true;
+				layer.video.loop = true;
+				layer.video.playsInline = true;
+				layer.video.autoplay = false;
+				layer.video.preload = "auto";
+				layer.video.src = project.previewVideo;
+
+				const markReady = () => {
+					layer.videoReady = true;
+					updateLayerVisibility(layer);
+					requestRender();
+				};
+
+				const onError = () => {
+					layer.videoReady = false;
+					updateLayerVisibility(layer);
+				};
+
+				layer.video.addEventListener("loadeddata", markReady, { once: true });
+				layer.video.addEventListener("canplay", markReady, { once: true });
+				layer.video.addEventListener("playing", markReady, { once: true });
+				layer.video.addEventListener("error", onError, { once: true });
+				layer.cleanupReady = () => {
+					layer.video.removeEventListener("loadeddata", markReady);
+					layer.video.removeEventListener("canplay", markReady);
+					layer.video.removeEventListener("playing", markReady);
+					layer.video.removeEventListener("error", onError);
+				};
+
+				layer.video.load();
+				updateLayerVisibility(layer);
+			};
+
+			const syncLayerPlayback = (layer, project, shouldPlay) => {
+				if (!layer.video || !project?.previewVideo) {
+					pauseLayerVideo(layer);
+					return;
+				}
+
+				if (!shouldPlay) {
+					pauseLayerVideo(layer);
+					return;
+				}
+
+				const playAttempt = layer.video.play();
+				if (playAttempt?.then) {
+					playAttempt
+						.then(() => {
+							layer.videoReady = true;
+							updateLayerVisibility(layer);
+							requestRender();
+						})
+						.catch(() => {});
+				}
+			};
+
+			const setShellHover = (x, y, lift = 0) => {
+				shell.style.setProperty("--shell-tilt-x", `${y.toFixed(3)}deg`);
+				shell.style.setProperty("--shell-tilt-y", `${x.toFixed(3)}deg`);
+				shell.style.setProperty("--shell-lift", `${lift.toFixed(3)}px`);
+			};
 
 			const onPointerMove = (event) => {
 				if (!hoverEnabled) return;
-				const rect = frame.getBoundingClientRect();
+				const rect = shell.getBoundingClientRect();
 				const relativeX = clampValue((event.clientX - rect.left) / rect.width, 0, 1);
 				const relativeY = clampValue((event.clientY - rect.top) / rect.height, 0, 1);
-				hoverTarget.x = easeHoverAxis((relativeX - 0.5) * 2);
-				hoverTarget.y = easeHoverAxis((relativeY - 0.5) * 2);
+				const easedX = easeHoverAxis((relativeX - 0.5) * 2);
+				const easedY = easeHoverAxis((relativeY - 0.5) * 2);
+				hoverTarget.x = easedX * 4.2;
+				hoverTarget.y = easedY * -3.4;
+				hoverTarget.lift = -3.2;
 				requestRender();
 			};
 
 			const resetPointer = () => {
 				hoverTarget.x = 0;
 				hoverTarget.y = 0;
+				hoverTarget.lift = 0;
 				requestRender();
 			};
 
 			if (hoverEnabled) {
-				frame.addEventListener("pointermove", onPointerMove, { passive: true });
-				frame.addEventListener("pointerleave", resetPointer);
+				shell.addEventListener("pointermove", onPointerMove, { passive: true });
+				shell.addEventListener("pointerleave", resetPointer);
 			}
-
-			const resize = () => {
-				const width = Math.max(1, sceneHost.clientWidth);
-				const height = Math.max(1, sceneHost.clientHeight);
-				const pixelRatio = Math.min(window.devicePixelRatio, pixelRatioCap);
-				camera.aspect = width / height;
-				camera.updateProjectionMatrix();
-				renderer.setPixelRatio(pixelRatio);
-				renderer.setSize(width, height, false);
-
-				const distance = camera.position.z - backdrop.position.z;
-				const visibleHeight =
-					2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
-				const visibleWidth = visibleHeight * camera.aspect;
-
-				backdrop.scale.set(visibleWidth * 0.98, visibleHeight * 0.96, 1);
-				backdropGlow.scale.set(visibleWidth * 0.62, visibleHeight * 0.5, 1);
-				requestRender();
-			};
-
-			const resizeObserver = new ResizeObserver(resize);
-			resizeObserver.observe(sceneHost);
-			resize();
-
-			window.addEventListener("scroll", requestRender, { passive: true });
-			stage.addEventListener("z-space-progress", requestRender);
 
 			visibilityObserver = new IntersectionObserver(
 				([entry]) => {
@@ -420,6 +268,8 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					if (isMonitorVisible) {
 						requestRender();
 					} else {
+						activeVideoIndicesKey = "";
+						layers.forEach(pauseLayerVideo);
 						stopRender();
 					}
 				},
@@ -427,7 +277,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			);
 			visibilityObserver.observe(stage);
 
-			function render(time) {
+			window.addEventListener("scroll", requestRender, { passive: true });
+			stage.addEventListener("z-space-progress", requestRender);
+
+			function render() {
 				frameId = 0;
 				if (!isMonitorVisible) return;
 
@@ -465,46 +318,37 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				const lowerIndex = Math.min(maxIndex, Math.floor(floatIndex));
 				const upperIndex = Math.min(maxIndex, lowerIndex + 1);
 				const blend = clampValue(floatIndex - lowerIndex, 0, 1);
+				const baseProject = projectEntries[lowerIndex];
+				const overlayProject = projectEntries[upperIndex];
+				const activeVideoIndices = new Set();
 
-				if (screenBaseMaterial.map !== textures[lowerIndex]) {
-					screenBaseMaterial.map = textures[lowerIndex];
-					screenBaseMaterial.needsUpdate = true;
+				hoverState.x += (hoverTarget.x - hoverState.x) * 0.12;
+				hoverState.y += (hoverTarget.y - hoverState.y) * 0.12;
+				hoverState.lift += (hoverTarget.lift - hoverState.lift) * 0.14;
+				setShellHover(hoverState.x, hoverState.y, hoverState.lift);
+
+				syncLayerProject(baseLayer, baseProject);
+				syncLayerProject(overlayLayer, overlayProject);
+
+				baseLayer.element.style.opacity = "1";
+				overlayLayer.element.style.opacity = blend.toFixed(3);
+				baseLayer.element.style.transform = `translate3d(${(blend * -18).toFixed(2)}px, 0, 0) scale(${(1 - blend * 0.02).toFixed(4)})`;
+				overlayLayer.element.style.transform = `translate3d(${((1 - blend) * 18).toFixed(2)}px, 0, 0) scale(${(0.98 + blend * 0.02).toFixed(4)})`;
+
+				if (baseProject?.previewVideo) activeVideoIndices.add(lowerIndex);
+				if (overlayProject?.previewVideo && blend > 0.001) activeVideoIndices.add(upperIndex);
+
+				const nextVideoKey = [...activeVideoIndices].sort((a, b) => a - b).join(",");
+				if (nextVideoKey !== activeVideoIndicesKey) {
+					activeVideoIndicesKey = nextVideoKey;
 				}
 
-				if (screenOverlayMaterial.map !== textures[upperIndex]) {
-					screenOverlayMaterial.map = textures[upperIndex];
-					screenOverlayMaterial.needsUpdate = true;
-				}
-
-				screenOverlayMaterial.opacity = blend;
-				screenBase.position.x = blend * -tuning.blendShift;
-				screenOverlay.position.x = (1 - blend) * tuning.blendShift;
-				screenBase.scale.setScalar(1 - blend * tuning.blendScale);
-				screenOverlay.scale.setScalar((1 - tuning.blendScale) + blend * tuning.blendScale);
-
-				hoverState.x += (hoverTarget.x - hoverState.x) * tuning.hoverEase;
-				hoverState.y += (hoverTarget.y - hoverState.y) * tuning.hoverEase;
-
-				const elapsed = time * 0.001;
-				rig.rotation.x =
-					tuning.rigRotX +
-					hoverState.y * tuning.hoverRotX +
-					Math.sin(elapsed * tuning.floatSpeed) * tuning.floatAmount;
-				rig.rotation.y = tuning.rigRotY + hoverState.x * tuning.hoverRotY;
-				rig.rotation.z = tuning.rigRotZ + hoverState.x * tuning.hoverRotZ;
-				rig.position.x =
-					tuning.rigPosX + tuning.wrapOffsetX * 0.01 + hoverState.x * tuning.hoverShiftX;
-				rig.position.y =
-					tuning.rigPosY - tuning.wrapOffsetY * 0.01 + hoverState.y * tuning.hoverShiftY;
-				rig.scale.setScalar(tuning.monitorScale);
-				backdropGlow.position.x = hoverState.x * -1.65;
-				backdropGlow.position.y = -0.4 + hoverState.y * -0.78;
-
-				camera.position.x += ((hoverState.x * tuning.cameraHoverX) - camera.position.x) * 0.05;
-				camera.position.y +=
-					((tuning.cameraY + hoverState.y * tuning.cameraHoverY) - camera.position.y) * 0.05;
-				camera.position.z += (tuning.cameraZ - camera.position.z) * 0.05;
-				camera.lookAt(0, tuning.lookAtY, tuning.lookAtZ);
+				syncLayerPlayback(baseLayer, baseProject, isMonitorVisible && activeVideoIndices.has(lowerIndex));
+				syncLayerPlayback(
+					overlayLayer,
+					overlayProject,
+					isMonitorVisible && activeVideoIndices.has(upperIndex) && blend > 0.001
+				);
 
 				copies.forEach((copy, index) => {
 					const offset = index - floatIndex;
@@ -521,16 +365,8 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					currentLabel.textContent = String(activeIndex + 1).padStart(2, "0");
 				}
 
-				if (roleLabel) {
-					roleLabel.textContent = projectEntries[activeIndex]?.roleLine ?? "";
-				}
-
-				if (yearLabel) {
-					yearLabel.textContent = String(projectEntries[activeIndex]?.year ?? "");
-				}
-
-				monitorLink.href = projectEntries[activeIndex]?.url ?? "#";
-				monitorLink.setAttribute(
+				mediaLink.href = projectEntries[activeIndex]?.url ?? "#";
+				mediaLink.setAttribute(
 					"aria-label",
 					`Open project ${projectEntries[activeIndex]?.title ?? "active"}`
 				);
@@ -538,12 +374,12 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				const progressDelta = Math.abs(projectsProgress - lastProgress);
 				lastProgress = projectsProgress;
 
-				renderer.render(scene, camera);
-
 				if (
-					progressDelta >= 0.0008 ||
-					Math.abs(hoverTarget.x - hoverState.x) >= 0.001 ||
-					Math.abs(hoverTarget.y - hoverState.y) >= 0.001
+					activeVideoIndicesKey ||
+					Math.abs(hoverTarget.x - hoverState.x) >= 0.01 ||
+					Math.abs(hoverTarget.y - hoverState.y) >= 0.01 ||
+					Math.abs(hoverTarget.lift - hoverState.lift) >= 0.01 ||
+					progressDelta >= 0.0008
 				) {
 					requestRender();
 				}
@@ -557,30 +393,16 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					stopRender();
 					window.removeEventListener("scroll", requestRender);
 					stage.removeEventListener("z-space-progress", requestRender);
-					resizeObserver.disconnect();
 					visibilityObserver?.disconnect();
 					if (hoverEnabled) {
-						frame.removeEventListener("pointermove", onPointerMove);
-						frame.removeEventListener("pointerleave", resetPointer);
+						shell.removeEventListener("pointermove", onPointerMove);
+						shell.removeEventListener("pointerleave", resetPointer);
 					}
-					renderer.dispose();
-					screenGeometry.dispose();
-					shell.geometry.dispose();
-					neck.geometry.dispose();
-					baseUpper.geometry.dispose();
-					baseLower.geometry.dispose();
-					floorShadow.geometry.dispose();
-					backdrop.geometry.dispose();
-					backdropGlow.geometry.dispose();
-					shellMaterial.dispose();
-					trimMaterial.dispose();
-					standMaterial.dispose();
-					glassMaterial.dispose();
-					backdropMaterial.dispose();
-					backdropGlow.material.dispose();
-					screenBaseMaterial.dispose();
-					screenOverlayMaterial.dispose();
-					glowTexture.dispose();
+					layers.forEach((layer) => {
+						teardownLayer(layer);
+						layer.video?.removeAttribute("src");
+						layer.video?.load();
+					});
 				},
 				{ once: true }
 			);
@@ -625,6 +447,31 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: rgba(240, 236, 228, 0.78);
+	}
+
+	.projects-monitor__hud-counter {
+		display: inline-flex;
+		align-items: flex-end;
+		gap: 0.3rem;
+		line-height: 1;
+	}
+
+	.projects-monitor__hud-counter strong {
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+		font-weight: 700;
+		letter-spacing: 0;
+		color: #f0ece4;
+	}
+
+	.projects-monitor__hud-counter small {
+		padding-bottom: 0.12rem;
+		font-family: "Inter", sans-serif;
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.52);
 	}
 
 	.projects-monitor__frame {
@@ -680,6 +527,122 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		animation: projects-monitor-border-rotate 3.2s linear infinite;
 	}
 
+	.projects-monitor__media-link {
+		position: absolute;
+		inset: 1.4rem 1.4rem 6rem;
+		z-index: 1;
+		text-decoration: none;
+	}
+
+	.projects-monitor__media-shell {
+		--shell-tilt-x: 0deg;
+		--shell-tilt-y: 0deg;
+		--shell-lift: 0px;
+		position: relative;
+		height: 100%;
+		border-radius: 1.2rem;
+		overflow: hidden;
+		background:
+			radial-gradient(circle at top, rgba(71, 223, 155, 0.12), transparent 48%),
+			linear-gradient(180deg, rgba(6, 9, 10, 0.98), rgba(0, 0, 0, 0.96));
+		box-shadow:
+			0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+			0 16px 60px rgba(0, 0, 0, 0.34),
+			0 0 28px rgba(71, 223, 155, 0.08);
+		transform:
+			perspective(1400px)
+			rotateX(var(--shell-tilt-x))
+			rotateY(var(--shell-tilt-y))
+			translate3d(0, var(--shell-lift), 0)
+			scale(1);
+		transform-style: preserve-3d;
+		transition:
+			transform 220ms ease,
+			box-shadow 220ms ease;
+		will-change: transform;
+	}
+
+	.projects-monitor__media-shell:hover {
+		box-shadow:
+			0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+			0 24px 70px rgba(0, 0, 0, 0.42),
+			0 0 34px rgba(71, 223, 155, 0.12);
+	}
+
+	.projects-monitor__media-layer,
+	.projects-monitor__media-shade,
+	.projects-monitor__media-noise,
+	.projects-monitor__media-grid {
+		position: absolute;
+		inset: 0;
+	}
+
+	.projects-monitor__media-layer {
+		overflow: hidden;
+		will-change: transform, opacity;
+		transition: opacity 220ms ease, transform 220ms ease;
+	}
+
+	.projects-monitor__media-layer img,
+	.projects-monitor__media-layer video {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		background: #000;
+	}
+
+	.projects-monitor__media-layer img {
+		object-fit: cover;
+		opacity: 1;
+		transition: opacity 220ms ease;
+	}
+
+	.projects-monitor__media-layer video {
+		object-fit: cover;
+		object-position: center top;
+		padding: 0;
+		transform: scale(1.01);
+		transform-origin: center center;
+		opacity: 0;
+		transition: opacity 220ms ease, transform 220ms ease;
+	}
+
+	.projects-monitor__media-layer[data-video-ready="true"] video {
+		opacity: 1;
+	}
+
+	.projects-monitor__media-layer[data-video-ready="true"] img {
+		opacity: 0;
+	}
+
+	.projects-monitor__media-shade {
+		z-index: 3;
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.28), transparent 18%, transparent 60%, rgba(0, 0, 0, 0.82)),
+			linear-gradient(90deg, rgba(0, 0, 0, 0.12), transparent 22%, transparent 82%, rgba(0, 0, 0, 0.16));
+	}
+
+	.projects-monitor__media-noise {
+		z-index: 4;
+		background-image:
+			linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+		background-size: 100% 3px, 3px 100%;
+		opacity: 0.16;
+		mix-blend-mode: screen;
+	}
+
+	.projects-monitor__media-grid {
+		z-index: 5;
+		background:
+			linear-gradient(180deg, transparent, rgba(71, 223, 155, 0.045));
+		border: 0;
+		border-radius: inherit;
+		pointer-events: none;
+	}
+
 	.projects-monitor__frame-line {
 		position: absolute;
 		left: 1.3rem;
@@ -693,25 +656,13 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		bottom: 4.9rem;
 	}
 
-	.projects-monitor__selection {
-		position: absolute;
-		left: 0.1rem;
-		top: 50%;
-		transform: translateY(-50%) rotate(180deg);
-		writing-mode: vertical-rl;
-		font-family: "Inter", sans-serif;
-		font-size: 0.84rem;
-		letter-spacing: 0.18em;
-		text-transform: uppercase;
-		color: rgba(240, 236, 228, 0.5);
-	}
-
 	.projects-monitor__ticks {
 		position: absolute;
 		right: 1.8rem;
 		top: 20%;
 		display: grid;
 		gap: 0.38rem;
+		z-index: 4;
 	}
 
 	.projects-monitor__ticks span {
@@ -722,71 +673,16 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		justify-self: end;
 	}
 
-	.projects-monitor__index {
-		position: absolute;
-		right: 2.4rem;
-		top: 3.3rem;
-		display: flex;
-		align-items: flex-end;
-		gap: 0.4rem;
-		z-index: 3;
-	}
-
-	.projects-monitor__index strong {
-		font-family: "Bebas Neue", sans-serif;
-		font-size: clamp(2.7rem, 5vw, 4.6rem);
-		font-weight: 700;
-		line-height: 0.9;
-		letter-spacing: 0;
-	}
-
-	.projects-monitor__index span {
-		padding-bottom: 0.7rem;
-		font-family: "Inter", sans-serif;
-		font-size: 0.9rem;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: rgba(240, 236, 228, 0.52);
-	}
-
-	.projects-monitor__meta {
-		position: absolute;
-		top: 3.35rem;
-		left: 2.8rem;
-		z-index: 4;
-		display: grid;
-		gap: 0.35rem;
-		max-width: min(23rem, 28vw);
-		text-align: left;
-	}
-
-	.projects-monitor__monitor-stage {
-		position: absolute;
-		inset: 0;
-		filter: drop-shadow(0 34px 80px rgba(0, 0, 0, 0.42));
-	}
-
-	.projects-monitor__monitor-stage :global(canvas) {
-		display: block;
-		width: 100%;
-		height: 100%;
-	}
-
-	.projects-monitor__monitor-link {
-		position: absolute;
-		inset: 13% 22% 21%;
-		z-index: 2;
-		border-radius: 1rem;
-	}
-
 	.projects-monitor__copy-stack {
 		position: absolute;
-		left: 2.2rem;
-		right: 2.2rem;
-		bottom: 5.1rem;
+		left: 50%;
+		right: auto;
+		bottom: 2.9rem;
+		width: min(calc(100% - 4.4rem), 72rem);
 		min-height: 8rem;
 		z-index: 4;
 		pointer-events: none;
+		transform: translateX(-50%);
 	}
 
 	.projects-monitor__copy-backdrop {
@@ -813,12 +709,12 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		bottom: 0;
 		display: grid;
 		gap: 0.4rem;
+		justify-items: center;
+		text-align: center;
 		transition: opacity 240ms ease;
 	}
 
-	.projects-monitor__copy-category,
-	.projects-monitor__meta p,
-	.projects-monitor__footer p {
+	.projects-monitor__copy-role {
 		margin: 0;
 		font-family: "Inter", sans-serif;
 		font-size: 0.86rem;
@@ -827,8 +723,9 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		color: rgba(240, 236, 228, 0.58);
 	}
 
-	.projects-monitor__copy-category {
-		color: #47df9b;
+	.projects-monitor__copy-role {
+		max-width: min(92%, 44rem);
+		color: rgba(240, 236, 228, 0.58);
 	}
 
 	.projects-monitor__copy h3 {
@@ -844,28 +741,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		text-shadow: 0 18px 30px rgba(0, 0, 0, 0.34);
 	}
 
-	.projects-monitor__footer {
-		position: absolute;
-		left: 2rem;
-		right: 2rem;
-		bottom: 1.4rem;
-		display: grid;
-		grid-template-columns: 1fr auto auto;
-		align-items: end;
-		gap: 1rem;
-		z-index: 4;
-	}
-
-	.projects-monitor__footer-year {
-		font-family: "Bebas Neue", sans-serif;
-		font-size: 1.5rem;
-		font-weight: 700;
-		line-height: 1;
-		letter-spacing: 0;
-		text-transform: uppercase;
-		color: #f0ece4;
-	}
-
 	@media (max-width: 1200px) {
 		.projects-monitor__copy h3 {
 			font-size: clamp(3.2rem, 8vw, 6.8rem);
@@ -877,7 +752,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			font-size: 0.7rem;
 		}
 
-		.projects-monitor__selection,
+		.projects-monitor__hud-counter strong {
+			font-size: 1.45rem;
+		}
+
 		.projects-monitor__ticks {
 			display: none;
 		}
@@ -886,26 +764,20 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			padding: 1rem;
 		}
 
+		.projects-monitor__media-link {
+			inset: 1rem 1rem 5.2rem;
+		}
+
 		.projects-monitor__frame-line--bottom {
 			right: 1rem;
 			bottom: 4.3rem;
 		}
 
-		.projects-monitor__index {
-			right: 1.2rem;
-			top: 2.7rem;
-		}
-
-		.projects-monitor__meta {
-			top: 2.75rem;
-			left: 1.15rem;
-			max-width: min(16rem, 34vw);
-		}
-
 		.projects-monitor__copy-stack {
-			left: 1.2rem;
-			right: 1.2rem;
-			bottom: 4.8rem;
+			left: 50%;
+			right: auto;
+			bottom: 2.95rem;
+			width: min(calc(100% - 2.4rem), 60rem);
 		}
 
 		.projects-monitor__copy-backdrop {
@@ -916,16 +788,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			font-size: clamp(2.7rem, 10vw, 5rem);
 		}
 
-		.projects-monitor__footer {
-			left: 1rem;
-			right: 1rem;
-			bottom: 1rem;
-			grid-template-columns: 1fr auto;
-		}
-
-		.projects-monitor__footer-year {
-			justify-self: end;
-		}
 	}
 
 	@media (max-width: 720px) {
@@ -938,9 +800,25 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			letter-spacing: 0.12em;
 		}
 
+		.projects-monitor__hud-counter strong {
+			font-size: 1.28rem;
+		}
+
+		.projects-monitor__hud-counter small {
+			font-size: 0.62rem;
+		}
+
 		.projects-monitor__frame {
 			padding: 0.85rem;
 			border-radius: 1.2rem;
+		}
+
+		.projects-monitor__media-link {
+			inset: 0.85rem 0.85rem 4.5rem;
+		}
+
+		.projects-monitor__media-shell {
+			border-radius: 0.95rem;
 		}
 
 		.projects-monitor__frame-line {
@@ -952,28 +830,11 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			bottom: 4rem;
 		}
 
-		.projects-monitor__index {
-			right: 0.9rem;
-			top: 2.2rem;
-		}
-
-		.projects-monitor__index strong {
-			font-size: 2.4rem;
-		}
-
-		.projects-monitor__index span {
-			padding-bottom: 0.45rem;
-			font-size: 0.72rem;
-		}
-
-		.projects-monitor__monitor-link {
-			inset: 18% 10% 25%;
-		}
-
 		.projects-monitor__copy-stack {
-			left: 0.9rem;
-			right: 0.9rem;
-			bottom: 4rem;
+			left: 50%;
+			right: auto;
+			bottom: 2.55rem;
+			width: calc(100% - 1.8rem);
 			min-height: 6.2rem;
 		}
 
@@ -981,17 +842,9 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			height: min(46%, 18rem);
 		}
 
-		.projects-monitor__copy-category,
-		.projects-monitor__meta p,
-		.projects-monitor__footer p {
+		.projects-monitor__copy-role {
 			font-size: 0.64rem;
 			letter-spacing: 0.12em;
-		}
-
-		.projects-monitor__meta {
-			top: 2.35rem;
-			left: 0.9rem;
-			max-width: 10.5rem;
 		}
 
 		.projects-monitor__copy h3 {
@@ -999,12 +852,14 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			line-height: 0.92;
 		}
 
-		.projects-monitor__footer {
-			bottom: 0.85rem;
-		}
+	}
 
-		.projects-monitor__footer-year {
-			font-size: 1.1rem;
+	@media (prefers-reduced-motion: reduce) {
+		.projects-monitor__media-shell,
+		.projects-monitor__media-layer,
+		.projects-monitor__media-layer img,
+		.projects-monitor__media-layer video {
+			transition: none;
 		}
 	}
 

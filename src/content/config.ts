@@ -13,6 +13,7 @@ const proyectos = defineCollection({
 			.optional()
 			.transform((str) => (str ? new Date(str) : undefined)),
 		heroImage: z.string(),
+		previewVideo: z.string().optional(),
 		category: z.string(),
 		url: z.string(),
 	}),
