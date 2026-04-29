@@ -76,16 +76,16 @@
 			stretchPeak: 0.75,
 			stretchFadeStart: 0.43,
 			stretchFadeEnd: 1,
-			particleFadeStart: 0.62,
-			particleFadeEnd: 0.69,
-			projectRevealStart: 0.536,
-			projectRevealEnd: 0.852,
+			particleFadeStart: 0.556,
+			particleFadeEnd: 0.712,
+			projectRevealStart: 0.463,
+			projectRevealEnd: 1,
 			projectRevealMax: 140,
-			projectRevealFeather: 20.8,
+			projectRevealFeather: 19.4,
 			heroExitStart: 0.346,
 			heroExitEnd: 0.67,
-			projectsEnterStart: 0.52,
-			projectsEnterEnd: 0.78,
+			projectsEnterStart: 0.409,
+			projectsEnterEnd: 0.696,
 			postprocessingEnabled: true,
 			bloomStrength: 2.066,
 			bloomRadius: 1,
@@ -97,7 +97,7 @@
 			chromaFadeEnd: 0.875,
 			lenisEnabled: true,
 			lenisLerp: 0.17,
-			lenisWheelMultiplier: 0.596,
+			lenisWheelMultiplier: 0.715,
 		};
 	}
 
@@ -324,6 +324,13 @@
 			const heroExit = smoothstep(tuning.heroExitStart, tuning.heroExitEnd, progress);
 			const projectsEnter = smoothstep(tuning.projectsEnterStart, tuning.projectsEnterEnd, progress);
 			const heroOpacity = 1 - smoothstep(0.56, 0.76, progress);
+			const heroTitleOpacity = 1 - smoothstep(0.06, 0.16, progress);
+			const heroCreativeOpacity =
+				smoothstep(0.12, 0.2, progress) * (1 - smoothstep(0.28, 0.36, progress));
+			const heroBasedOpacity =
+				smoothstep(0.3, 0.38, progress) * (1 - smoothstep(0.44, 0.54, progress));
+			const heroSloganOpacity =
+				smoothstep(0.44, 0.54, progress) * (1 - smoothstep(0.78, 0.92, progress));
 			const projectsOpacity = smoothstep(0.58, 0.78, progress);
 			const scrollHintOpacity = 1 - smoothstep(0.74, 0.92, progress);
 			const projectsProgress = smoothstep(0.74, 1, progress);
@@ -331,10 +338,14 @@
 			const projectsRevealEdge = Math.min(170, projectsReveal + tuning.projectRevealFeather);
 
 			stage.style.setProperty('--hero-opacity', heroOpacity.toFixed(3));
-			stage.style.setProperty('--hero-y', `${lerp(0, -14, heroExit).toFixed(3)}vh`);
+			stage.style.setProperty('--hero-y', `${lerp(0, 14, heroExit).toFixed(3)}vh`);
 			stage.style.setProperty('--hero-z', `${lerp(0, -640, heroExit).toFixed(3)}px`);
 			stage.style.setProperty('--hero-tilt', `${lerp(0, 7, heroExit).toFixed(3)}deg`);
 			stage.style.setProperty('--hero-scale', lerp(1, 0.86, heroExit).toFixed(3));
+			stage.style.setProperty('--hero-seq-title-opacity', heroTitleOpacity.toFixed(3));
+			stage.style.setProperty('--hero-seq-creative-opacity', heroCreativeOpacity.toFixed(3));
+			stage.style.setProperty('--hero-seq-based-opacity', heroBasedOpacity.toFixed(3));
+			stage.style.setProperty('--hero-seq-slogan-opacity', heroSloganOpacity.toFixed(3));
 			stage.style.setProperty('--hero-headline-offset', `${tuning.headlineBaseRem.toFixed(3)}rem`);
 			stage.style.setProperty('--hero-headline-scroll-y', `${lerp(0, tuning.headlineScrollVh, vortexOpen).toFixed(3)}vh`);
 			stage.style.setProperty('--scroll-hint-opacity', scrollHintOpacity.toFixed(3));

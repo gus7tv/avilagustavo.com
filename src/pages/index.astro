@@ -5,7 +5,7 @@ import ProjectsMonitor from "../components/ProjectsMonitor.astro";
 import ScrollSpace3D from "../components/ScrollSpace3D.astro";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
 import { getCollection } from "astro:content";
-import { ArrowRight, X } from "lucide";
+import { X } from "lucide";
 
 const projects = (await getCollection("proyectos"))
 	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
@@ -22,7 +22,6 @@ const socialLinks = [
 	{ label: "X", href: "https://x.com/gus7tv_" },
 ];
 
-const heroArrowPaths = ArrowRight.map(([, attrs]) => attrs);
 const xIconPaths = X.map(([, attrs]) => attrs);
 ---
 
@@ -121,39 +120,18 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 							<HeroMouseDistortion />
 
 							<section class="hero z-panel z-panel--hero" aria-label="Hero">
-								<div class="hero__topline">
-									<div class="hero__descriptor">
-										<p>Creative Developer & UX Engineer</p>
-										<p>AI Oriented · Building the 3D Web</p>
-									</div>
-								</div>
-
 								<div class="hero__headline">
-									<h1 class="hero__name" aria-label="Design to development">
-										<span>Design</span>
-										<svg
-											class="hero__name-arrow"
-											aria-hidden="true"
-											viewBox="0 0 24 24"
-											fill="none"
-											xmlns="http://www.w3.org/2000/svg"
-										>
-											{
-												heroArrowPaths.map((attrs) => (
-													<path d={attrs.d} />
-												))
-											}
-										</svg>
-										<span>Dev</span>
-									</h1>
-								</div>
-
-								<div class="hero__footer">
-									<p class="hero__caption">
-										Bridging the gap between<br />
-										design and development
-									</p>
-									<p class="hero__caption hero__caption--end">Based in Bogotá, Co</p>
+									<div class="hero__headline-sequence">
+										<h1 class="hero__name" aria-label="Gustavo Avila">
+											<span>GUSTAVO</span>
+											<span>AVILA</span>
+										</h1>
+										<p class="hero__phase hero__phase--creative">Creative Developer & UX Engineer</p>
+										<p class="hero__phase hero__phase--based">Based in Bogota, CO</p>
+										<p class="hero__phase hero__phase--slogan">
+											Bridging the gap between design and development
+										</p>
+									</div>
 								</div>
 							</section>
 
@@ -468,6 +446,10 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		--hero-tilt: 0deg;
 		--hero-scale: 1;
 		--hero-headline-scroll-y: 0vh;
+		--hero-seq-title-opacity: 1;
+		--hero-seq-creative-opacity: 0;
+		--hero-seq-based-opacity: 0;
+		--hero-seq-slogan-opacity: 0;
 		--projects-opacity: 0;
 		--projects-y: 18vh;
 		--projects-z: -720px;
@@ -576,23 +558,21 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		pointer-events: none;
 	}
 
-		.hero {
+	.hero {
 		--hero-vortex-offset: 1.1rem;
 		--hero-headline-offset: 3.15rem;
 		width: 100%;
 		position: relative;
-		display: grid;
-		grid-template-rows: auto 1fr auto;
-		gap: 1.5rem;
-		min-height: calc(100vh - 110px);
-		padding: 1.2rem 0 2rem;
+		height: 100%;
+		min-height: 100%;
+		padding: 0;
 		overflow: hidden;
 	}
 
 	.z-panel.hero {
 		height: 100%;
 		min-height: 100%;
-		padding: clamp(1rem, 3vh, 2rem) 0 clamp(1.25rem, 4vh, 2.6rem);
+		padding: 0;
 	}
 
 	.hero,
@@ -608,51 +588,23 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		text-transform: uppercase;
 	}
 
-	.hero__topline {
-		position: relative;
-		z-index: 2;
-		display: flex;
-		align-items: flex-start;
-		justify-content: flex-start;
-		pointer-events: none;
-	}
-
-	.hero__descriptor {
-		display: grid;
-		gap: 0.12rem;
-		max-width: 18rem;
-	}
-
-	.hero__descriptor p {
-		margin: 0;
-		font-size: 0.98rem;
-		line-height: 1.2;
-		color: #d9e3f6;
-	}
-
-	.hero__descriptor p:not(:first-child) {
-		color: #7e8a97;
-	}
-
 	.hero__headline {
 		position: absolute;
-		inset: 2.6rem 0 7.8rem;
+		inset: 0;
 		z-index: 2;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		pointer-events: none;
-		transform: translateY(calc(var(--hero-headline-offset) + var(--hero-headline-scroll-y)));
 	}
 
-	.hero__footer {
+	.hero__headline-sequence {
 		position: relative;
-		z-index: 2;
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		align-items: end;
-		gap: 1rem;
-		pointer-events: none;
+		place-items: center;
+		width: 100%;
+		padding-inline: clamp(0.4rem, 1.8vw, 1.5rem);
+		transform: translateY(clamp(108px, 13.5vh, 182px));
 	}
 
 	.hero__scroll-hint {
@@ -722,22 +674,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		transform: translateX(-50%);
 	}
 
-	.hero__caption {
-		margin: 0;
-		color: #d9e3f6;
-		font-size: 0.98rem;
-		line-height: 1.2;
-		max-width: 19rem;
-	}
-
-	.hero__caption--end {
-		justify-self: stretch;
-		width: 100%;
-		max-width: none;
-		text-align: right;
-		color: #aeb8c7;
-	}
-
 	.hero__name {
 		margin: 0;
 		--title-shift-x: 0;
@@ -747,14 +683,17 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.04em;
+		justify-content: center;
+		gap: 0.22em;
+		width: 100%;
 		font-family: "Bebas Neue", sans-serif;
-		font-size: clamp(4rem, 14vw, 13rem);
+		font-size: clamp(5.8rem, 19.5vw, 21rem);
 		font-weight: 500;
 		line-height: 0.92;
 		letter-spacing: 0;
 		white-space: nowrap;
 		color: #f4f7fb;
+		opacity: var(--hero-seq-title-opacity);
 		transform:
 			translate3d(
 				calc(var(--title-shift-x) * 1px),
@@ -767,54 +706,45 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 			0 0 calc(18px + var(--title-glow) * 12px) rgba(120, 255, 196, calc(0.02 + var(--title-glow) * 0.035));
 		transition:
 			transform 260ms ease-out,
-			text-shadow 320ms ease-out;
-		will-change: transform, text-shadow;
+			text-shadow 320ms ease-out,
+			opacity 200ms linear;
+		will-change: transform, text-shadow, opacity;
 		pointer-events: none;
 	}
 
-	.hero__name-arrow {
-		width: 0.74em;
-		height: 0.52em;
-		margin-inline: 0.035em 0.055em;
-		flex: none;
-		stroke: #47df9b;
-		stroke-width: 1.85;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		transform-origin: center;
-		transform-style: preserve-3d;
-		transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(0deg);
-		animation: hero-title-arrow-flip 7.2s linear infinite;
-		filter: drop-shadow(0 0 3px rgba(71, 223, 155, 0.12));
+	.hero__phase {
+		grid-area: 1 / 1;
+		margin: 0;
+		max-width: min(86vw, 54rem);
+		text-align: center;
+		font-family: "Inter", sans-serif;
+		font-size: clamp(1.1rem, 2.6vw, 2.05rem);
+		font-weight: 500;
+		line-height: 1.2;
+		letter-spacing: 0;
+		text-wrap: balance;
+		color: #e4ebf8;
+		text-shadow: 0 10px 30px rgba(0, 0, 0, 0.38);
+		will-change: opacity, transform;
+		transition: opacity 180ms linear;
 	}
 
-	@keyframes hero-title-arrow-flip {
-		0%,
-		41.666% {
-			transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(0deg) scaleY(1);
-			opacity: 0.96;
-		}
+	.hero__phase--creative {
+		opacity: var(--hero-seq-creative-opacity);
+	}
 
-		45.833% {
-			transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(90deg) scaleY(0.96);
-			opacity: 0.82;
-		}
+	.hero__phase--based {
+		opacity: var(--hero-seq-based-opacity);
+		font-size: clamp(1.25rem, 3vw, 2.3rem);
+		font-weight: 600;
+		color: #d6deee;
+	}
 
-		50%,
-		91.666% {
-			transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(180deg) scaleY(1);
-			opacity: 0.96;
-		}
-
-		95.833% {
-			transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(270deg) scaleY(0.96);
-			opacity: 0.82;
-		}
-
-		100% {
-			transform: perspective(80px) translate3d(0, 0.035em, 0) rotateY(360deg) scaleY(1);
-			opacity: 0.96;
-		}
+	.hero__phase--slogan {
+		opacity: var(--hero-seq-slogan-opacity);
+		font-size: clamp(1.32rem, 3vw, 2.28rem);
+		max-width: min(86vw, 42rem);
+		color: #dbe4f4;
 	}
 
 	@keyframes hero-scroll-wheel {
@@ -981,21 +911,14 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		}
 
 		.hero {
-			min-height: auto;
-			padding-top: 1.5rem;
-			overflow: visible;
+			min-height: 100%;
+			overflow: hidden;
 		}
 
 		.z-panel.hero {
 			height: 100%;
 			min-height: 100%;
-			padding-top: 1.2rem;
-			overflow: hidden;
-		}
-
-		.hero__footer {
-			grid-template-columns: 1fr;
-			gap: 1.25rem;
+			padding: 0;
 		}
 
 		.hero__scroll-hint {
@@ -1009,11 +932,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 		.hero__scroll-hint:hover {
 			transform: translateY(-2px);
-		}
-
-		.hero__caption--end {
-			justify-self: start;
-			text-align: left;
 		}
 
 	}
@@ -1060,13 +978,20 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 			width: 2.35rem;
 		}
 
-		.hero__descriptor p,
-		.hero__caption {
-			font-size: 0.9rem;
+		.hero__name {
+			font-size: clamp(4.2rem, 20.5vw, 6.4rem);
 		}
 
-		.hero__name {
-			font-size: clamp(3.4rem, 17vw, 4.9rem);
+		.hero__phase--creative {
+			font-size: clamp(0.98rem, 4.6vw, 1.28rem);
+		}
+
+		.hero__phase--based {
+			font-size: clamp(1.08rem, 5.2vw, 1.5rem);
+		}
+
+		.hero__phase--slogan {
+			font-size: clamp(1.16rem, 5.3vw, 1.52rem);
 		}
 
 		.page-footer {
