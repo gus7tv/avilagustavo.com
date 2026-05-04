@@ -450,6 +450,8 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		--hero-seq-creative-opacity: 0;
 		--hero-seq-based-opacity: 0;
 		--hero-seq-slogan-opacity: 0;
+		--hero-seq-creative-y: 0vh;
+		--hero-seq-based-y: 0vh;
 		--projects-opacity: 0;
 		--projects-y: 18vh;
 		--projects-z: -720px;
@@ -731,10 +733,12 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	.hero__phase--creative {
 		opacity: var(--hero-seq-creative-opacity);
+		transform: translateY(var(--hero-seq-creative-y));
 	}
 
 	.hero__phase--based {
 		opacity: var(--hero-seq-based-opacity);
+		transform: translateY(var(--hero-seq-based-y));
 		font-size: clamp(1.25rem, 3vw, 2.3rem);
 		font-weight: 600;
 		color: #d6deee;
