@@ -1,8 +1,6 @@
 :root {
 	--accent: #47df9b;
-	--accent-dark: #003822;
 	--surface: #020504;
-	--surface-low: #050806;
 	--surface-high: rgba(0, 0, 0, 0.78);
 	--surface-ghost: rgba(71, 223, 155, 0.08);
 	--text-primary: #f4f7fb;

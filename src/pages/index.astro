@@ -224,7 +224,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 <style is:global>
 	.portfolio-home {
 		background: #000;
-		color: #bdc7d9;
+		color: var(--text-secondary);
 		overflow-x: clip;
 	}
 
@@ -286,7 +286,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		align-items: center;
 		font-family: "Inter", sans-serif;
 		font-size: 1.9rem;
-		color: #f4f7fb;
+		color: var(--text-primary);
 	}
 
 	.topbar__brand-name {
@@ -321,7 +321,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.topbar__social-link,
 	.page-footer a,
 	.contact-links a {
-		color: #bdc7d9;
+		color: var(--text-secondary);
 		font-family: "Inter", sans-serif;
 		font-size: 0.82rem;
 		letter-spacing: 0.04em;
@@ -348,7 +348,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.topbar__social-link:hover,
 	.page-footer a:hover,
 	.contact-links a:hover {
-		color: #47df9b;
+		color: var(--accent);
 	}
 
 	.topbar__social-link:hover {
@@ -408,7 +408,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	.topbar__cta:hover {
-		color: #47df9b !important;
+		color: var(--accent) !important;
 		transform: translateY(-1px);
 		border-color: rgba(71, 223, 155, 0.5);
 		background: rgba(0, 0, 0, 0.92);
@@ -421,7 +421,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 			0 0 0 3px rgba(71, 223, 155, 0.14),
 			0 0 0 6px rgba(71, 223, 155, 0.2);
 		border-color: rgba(71, 223, 155, 0.62);
-		color: #47df9b !important;
+		color: var(--accent) !important;
 	}
 
 	.contact-submit-button {
@@ -692,7 +692,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		line-height: 0.92;
 		letter-spacing: 0;
 		white-space: nowrap;
-		color: #f4f7fb;
+		color: var(--text-primary);
 		opacity: var(--hero-seq-title-opacity);
 		transform:
 			translate3d(
@@ -778,7 +778,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	.contact-copy p {
 		margin: 0;
-		color: #bbcabe;
+		color: var(--text-muted);
 	}
 
 	.section-block {
@@ -834,7 +834,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		font-size: 0.76rem;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
-		color: #47df9b;
+		color: var(--accent);
 	}
 
 	.contact-form input,
@@ -865,7 +865,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 	.page-footer p {
 		margin: 0;
-		color: #bbcabe;
+		color: var(--text-muted);
 	}
 
 	.page-footer div {
