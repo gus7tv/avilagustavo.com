@@ -1,12 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Project preview placeholder">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Project preview loading">
 	<defs>
 		<radialGradient id="glow" cx="50%" cy="36%" r="62%">
 			<stop offset="0%" stop-color="#0f2a22" />
 			<stop offset="100%" stop-color="#060f14" />
 		</radialGradient>
 	</defs>
+	<style>
+		@keyframes ppl-blink {
+			0%, 80%, 100% { opacity: 0.22; transform: scale(0.85); }
+			40% { opacity: 1; transform: scale(1); }
+		}
+		.ppl-dot {
+			transform-box: fill-box;
+			transform-origin: center;
+			animation: ppl-blink 1.3s ease-in-out infinite;
+		}
+		.ppl-dot--2 { animation-delay: 0.18s; }
+		.ppl-dot--3 { animation-delay: 0.36s; }
+		@media (prefers-reduced-motion: reduce) {
+			.ppl-dot { animation: none; opacity: 0.65; }
+		}
+	</style>
 	<rect width="1280" height="720" fill="url(#glow)" />
-	<circle cx="640" cy="322" r="58" fill="none" stroke="#47df9b" stroke-opacity="0.5" stroke-width="2" />
-	<path d="M623 294 l36 28 -36 28 Z" fill="#47df9b" fill-opacity="0.82" />
-	<text x="640" y="446" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" letter-spacing="7" fill="#bdc7d9" fill-opacity="0.55">PROJECT PREVIEW</text>
+	<g fill="#47df9b">
+		<circle class="ppl-dot" cx="604" cy="334" r="12" />
+		<circle class="ppl-dot ppl-dot--2" cx="640" cy="334" r="12" />
+		<circle class="ppl-dot ppl-dot--3" cx="676" cy="334" r="12" />
+	</g>
+	<text x="640" y="420" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" letter-spacing="7" fill="#bdc7d9" fill-opacity="0.5">LOADING PREVIEW</text>
 </svg>

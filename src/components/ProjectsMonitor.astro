@@ -12,6 +12,7 @@ const projectEntries = projects.map((project, index) => {
 	return {
 		index: String(index + 1).padStart(2, "0"),
 		title: project.data.title.toUpperCase(),
+		titleEs: (project.data.titleEs ?? project.data.title).toUpperCase(),
 		category: project.data.category.toUpperCase(),
 		description: project.data.description,
 		tags,
@@ -35,7 +36,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	aria-label="Featured projects"
 >
 	<div class="projects-monitor__hud">
-		<span>FEATURED PROJECTS</span>
+		<span data-i18n="projects_label">FEATURED PROJECTS</span>
 		<div class="projects-monitor__controls">
 			{projectEntries.length > 1 && (
 				<button
@@ -43,6 +44,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					class="projects-monitor__nav"
 					data-project-prev
 					aria-label="Previous project"
+					data-i18n-aria="projects_prev"
 				>
 					<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
 						<path d="M15 5 8 12l7 7" />
@@ -59,6 +61,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					class="projects-monitor__nav"
 					data-project-next
 					aria-label="Next project"
+					data-i18n-aria="projects_next"
 				>
 					<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
 						<path d="m9 5 7 7-7 7" />
@@ -107,10 +110,10 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			{
 				projectEntries.map((project, index) => (
 					<div class="projects-monitor__copy" data-project-copy data-copy-index={index}>
-						<h3>{project.title}</h3>
+						<h3 data-project-title data-title-en={project.title} data-title-es={project.titleEs}>{project.title}</h3>
 						{project.tags.length > 0 && (
 							<div class="projects-monitor__tags">
-								<span class="projects-monitor__tags-label">Made with</span>
+								<span class="projects-monitor__tags-label" data-i18n="made_with">Made with</span>
 								<ul class="projects-monitor__tag-list">
 									{project.tags.map((tag) => (
 										<li class="projects-monitor__tag">{tag}</li>
@@ -421,6 +424,9 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 
 			stage.addEventListener("z-space-progress", syncPanelActive);
 
+			const onLocaleChange = () => requestRender();
+			window.addEventListener("i18n-change", onLocaleChange);
+
 			function render() {
 				frameId = 0;
 				if (!isMonitorVisible) return;
@@ -522,10 +528,15 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				}
 
 				mediaLink.href = projectEntries[targetIndex]?.url ?? "#";
-				mediaLink.setAttribute(
-					"aria-label",
-					`Open project ${projectEntries[targetIndex]?.title ?? "active"}`
-				);
+				const activeProject = projectEntries[targetIndex];
+				const locale = window.__locale === "es" ? "es" : "en";
+				const activeTitle = activeProject
+					? locale === "es"
+						? activeProject.titleEs
+						: activeProject.title
+					: "active";
+				const openLabel = locale === "es" ? "Abrir proyecto" : "Open project";
+				mediaLink.setAttribute("aria-label", `${openLabel} ${activeTitle}`);
 
 				if (
 					activeVideoIndicesKey ||
@@ -547,6 +558,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 					stopRender();
 					stopAutoAdvance();
 					stage.removeEventListener("z-space-progress", syncPanelActive);
+					window.removeEventListener("i18n-change", onLocaleChange);
 					prevButton?.removeEventListener("click", onPrevClick);
 					nextButton?.removeEventListener("click", onNextClick);
 					mediaLink.removeEventListener("pointerdown", onMediaPointerDown);

@@ -1,5 +1,6 @@
 ---
-title: '¿Quién Es Ese Pokémon?'
+title: "Who's That Pokémon?"
+titleEs: '¿Quién Es Ese Pokémon?'
 description: 'Mini-juego de adivinanzas de Pokémon construido con: #Vue #GameDesign #Gamification #Vitest #Vite.'
 pubDate: 'Mar 1 2025'
 order: 4

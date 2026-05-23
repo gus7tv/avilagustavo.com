@@ -126,7 +126,15 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 								</svg>
 							</a>
 						</nav>
-						<a href="#contacto" class="topbar__cta">Contact</a>
+						<button
+							type="button"
+							class="topbar__lang"
+							data-lang-toggle
+							aria-label="Switch language to Spanish"
+						>
+							<span data-lang-target>ES</span>
+						</button>
+						<a href="#contacto" class="topbar__cta" data-i18n="nav_contact">Contact</a>
 					</div>
 				</header>
 
@@ -144,16 +152,16 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 											<span>GUSTAVO</span>
 											<span>AVILA</span>
 										</h1>
-										<p class="hero__phase hero__phase--creative">Creative Developer & UX Engineer</p>
-										<p class="hero__phase hero__phase--based">Based in Bogota, CO</p>
-										<p class="hero__phase hero__phase--slogan">
+										<p class="hero__phase hero__phase--creative" data-i18n="hero_creative">Creative Developer & UX Engineer</p>
+										<p class="hero__phase hero__phase--based" data-i18n="hero_based">Based in Bogota, CO</p>
+										<p class="hero__phase hero__phase--slogan" data-i18n="hero_slogan">
 											Bridging the gap between design and development
 										</p>
 									</div>
 								</div>
 							</section>
 
-							<a class="hero__scroll-hint" href="#proyectos" aria-label="Go to projects">
+							<a class="hero__scroll-hint" href="#proyectos" aria-label="Go to projects" data-i18n-aria="go_to_projects">
 								<span class="hero__scroll-wheel" aria-hidden="true"></span>
 								<span class="hero__scroll-label" aria-hidden="true">scroll</span>
 							</a>
@@ -166,14 +174,14 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 
 					<section id="contacto" class="section-block section-block--contact">
 						<div class="contact-copy">
-							<h2>LET'S TALK</h2>
-							<p>
+							<h2 data-i18n="contact_title">LET'S TALK</h2>
+							<p data-i18n="contact_invite">
 								If you've made it this far, I'd love to hear from you
 								about your proposal, idea, or project.
 							</p>
 
 							<div class="contact-certs">
-								<span class="contact-eyebrow">Certifications</span>
+								<span class="contact-eyebrow" data-i18n="certifications">Certifications</span>
 								<div class="contact-certs__items">
 									<img
 										src="/google-certification.png"
@@ -191,7 +199,7 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 							</div>
 
 							<div class="contact-connect">
-								<span class="contact-eyebrow">Let's stay in touch</span>
+								<span class="contact-eyebrow" data-i18n="stay_in_touch">Let's stay in touch</span>
 								<div class="contact-links">
 									{socialLinks.map((item) => {
 										const icon = socialIcons[item.label];
@@ -236,50 +244,59 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 									<label>Don't fill this out if you're human: <input name="bot-field" /></label>
 								</p>
 								<label>
-									<span>Name</span>
-									<input type="text" name="nombre" placeholder="Your name" autocomplete="name" required />
+									<span data-i18n="form_name">Name</span>
+									<input
+										type="text"
+										name="nombre"
+										placeholder="Your name"
+										data-i18n-placeholder="form_name_placeholder"
+										autocomplete="name"
+										required
+									/>
 								</label>
 
 								<label>
-									<span>Email address</span>
+									<span data-i18n="form_email">Email address</span>
 									<input
 										type="email"
 										name="correo"
 										placeholder="email@domain.com"
+										data-i18n-placeholder="form_email_placeholder"
 										autocomplete="email"
 										required
 									/>
 								</label>
 
 								<label>
-									<span>Message</span>
+									<span data-i18n="form_message">Message</span>
 									<textarea
 										name="mensaje"
 										rows="5"
 										placeholder="Tell me what you're building."
+										data-i18n-placeholder="form_message_placeholder"
 										required
 									></textarea>
 								</label>
 
-								<button class="topbar__cta contact-submit-button" type="submit">SEND MESSAGE</button>
+								<button class="topbar__cta contact-submit-button" type="submit" data-i18n="form_send">SEND MESSAGE</button>
 
 								<p class="contact-form__status" data-form-status role="status" aria-live="polite"></p>
 							</form>
 
 							<div class="contact-thanks" data-contact-thanks hidden>
-								<p class="contact-thanks__kicker">Message received</p>
-								<h3 class="contact-thanks__title">Thank you</h3>
-								<p class="contact-thanks__text">
+								<p class="contact-thanks__kicker" data-i18n="thanks_kicker">Message received</p>
+								<h3 class="contact-thanks__title" data-i18n="thanks_title">Thank you</h3>
+								<p class="contact-thanks__text" data-i18n="thanks_text">
 									I'm reviewing your details and I'll get back to you very soon.
 								</p>
 								<div class="runner" data-runner>
-									<p class="runner__label">While you wait — try to beat my record</p>
+									<p class="runner__label" data-i18n="runner_label">While you wait — try to beat my record</p>
 									<canvas
 										class="runner__canvas"
 										data-runner-canvas
 										aria-label="Pulse Runner mini game"
 									></canvas>
-									<p class="runner__hint" data-runner-hint>Tap or press Space to play</p>
+									<p class="runner__hint" data-runner-hint data-i18n="runner_hint_start">Tap or press Space to play</p>
 								</div>
 							</div>
 						</div>
@@ -287,12 +304,164 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 				</main>
 
 				<footer class="page-footer">
-					<p>{`©${currentYear} GUSTAVO AVILA · ALL RIGHTS RESERVED`}</p>
+					<p>{`©${currentYear} GUSTAVO AVILA · `}<span data-i18n="footer_rights">ALL RIGHTS RESERVED</span></p>
 				</footer>
 			</div>
 		</div>
 
 		<script>
+			type Locale = "en" | "es";
+
+			const dict: Record<Locale, Record<string, string>> = {
+				en: {
+					nav_contact: "Contact",
+					hero_creative: "Creative Developer & UX Engineer",
+					hero_based: "Based in Bogota, CO",
+					hero_slogan: "Bridging the gap between design and development",
+					go_to_projects: "Go to projects",
+					projects_label: "FEATURED PROJECTS",
+					projects_prev: "Previous project",
+					projects_next: "Next project",
+					made_with: "Made with",
+					contact_title: "LET'S TALK",
+					contact_invite:
+						"If you've made it this far, I'd love to hear from you about your proposal, idea, or project.",
+					certifications: "Certifications",
+					stay_in_touch: "Let's stay in touch",
+					form_name: "Name",
+					form_name_placeholder: "Your name",
+					form_email: "Email address",
+					form_email_placeholder: "email@domain.com",
+					form_message: "Message",
+					form_message_placeholder: "Tell me what you're building.",
+					form_send: "SEND MESSAGE",
+					form_sending: "SENDING…",
+					form_status_sending: "Sending your message…",
+					form_status_error:
+						"Something went wrong. Please try again or email me directly.",
+					thanks_kicker: "Message received",
+					thanks_title: "Thank you",
+					thanks_text:
+						"I'm reviewing your details and I'll get back to you very soon.",
+					runner_label: "While you wait — try to beat my record",
+					runner_hint_start: "Tap or press Space to play",
+					runner_hint_jump: "Tap or press Space to jump",
+					runner_hint_retry: "Tap or press Space to retry",
+					runner_best: "BEST",
+					runner_game_over: "GAME OVER",
+					runner_press_start: "PRESS TO START",
+					footer_rights: "ALL RIGHTS RESERVED",
+				},
+				es: {
+					nav_contact: "Contacto",
+					hero_creative: "Desarrollador Creativo & UX Engineer",
+					hero_based: "Desde Bogotá, CO",
+					hero_slogan: "Conectando el diseño con el desarrollo",
+					go_to_projects: "Ir a proyectos",
+					projects_label: "PROYECTOS DESTACADOS",
+					projects_prev: "Proyecto anterior",
+					projects_next: "Siguiente proyecto",
+					made_with: "Hecho con",
+					contact_title: "HABLEMOS",
+					contact_invite:
+						"Si llegaste hasta aquí, me encantaría saber de ti — tu propuesta, idea o proyecto.",
+					certifications: "Certificaciones",
+					stay_in_touch: "Mantengámonos en contacto",
+					form_name: "Nombre",
+					form_name_placeholder: "Tu nombre",
+					form_email: "Correo electrónico",
+					form_email_placeholder: "correo@dominio.com",
+					form_message: "Mensaje",
+					form_message_placeholder: "Cuéntame qué estás construyendo.",
+					form_send: "ENVIAR MENSAJE",
+					form_sending: "ENVIANDO…",
+					form_status_sending: "Enviando tu mensaje…",
+					form_status_error:
+						"Algo salió mal. Inténtalo de nuevo o escríbeme directamente.",
+					thanks_kicker: "Mensaje recibido",
+					thanks_title: "Gracias",
+					thanks_text:
+						"Estoy revisando tus datos y te responderé muy pronto.",
+					runner_label: "Mientras esperas — intenta superar mi récord",
+					runner_hint_start: "Toca o presiona Espacio para jugar",
+					runner_hint_jump: "Toca o presiona Espacio para saltar",
+					runner_hint_retry: "Toca o presiona Espacio para reintentar",
+					runner_best: "MEJOR",
+					runner_game_over: "FIN DEL JUEGO",
+					runner_press_start: "PRESIONA PARA EMPEZAR",
+					footer_rights: "TODOS LOS DERECHOS RESERVADOS",
+				},
+			};
+
+			const LOCALE_KEY = "gavila:locale";
+
+			const getLocale = (): Locale =>
+				(window as any).__locale === "es" ? "es" : "en";
+
+			const tr = (key: string): string => {
+				const strings = dict[getLocale()];
+				return strings[key] ?? dict.en[key] ?? key;
+			};
+
+			(window as any).__dict = dict;
+			(window as any).__tr = tr;
+			(window as any).__locale = "en";
+
+			const applyLocale = (locale: Locale) => {
+				const safe: Locale = locale === "es" ? "es" : "en";
+				(window as any).__locale = safe;
+				document.documentElement.lang = safe;
+				const strings = dict[safe];
+				document.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
+					const key = el.getAttribute("data-i18n");
+					if (key && strings[key] != null) el.textContent = strings[key];
+				});
+				document.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach((el) => {
+					const key = el.getAttribute("data-i18n-aria");
+					if (key && strings[key] != null) el.setAttribute("aria-label", strings[key]);
+				});
+				document.querySelectorAll<HTMLElement>("[data-i18n-placeholder]").forEach((el) => {
+					const key = el.getAttribute("data-i18n-placeholder");
+					if (key && strings[key] != null) el.setAttribute("placeholder", strings[key]);
+				});
+				document.querySelectorAll<HTMLElement>("[data-project-title]").forEach((el) => {
+					const en = el.getAttribute("data-title-en");
+					const es = el.getAttribute("data-title-es");
+					const value = safe === "es" ? es : en;
+					if (value != null) el.textContent = value;
+				});
+				const toggle = document.querySelector<HTMLElement>("[data-lang-toggle]");
+				if (toggle) {
+					toggle.setAttribute(
+						"aria-label",
+						safe === "es" ? "Cambiar idioma a inglés" : "Switch language to Spanish",
+					);
+					const target = toggle.querySelector<HTMLElement>("[data-lang-target]");
+					if (target) target.textContent = safe === "es" ? "EN" : "ES";
+				}
+				try {
+					window.localStorage.setItem(LOCALE_KEY, safe);
+				} catch (error) {
+					/* ignore */
+				}
+				window.dispatchEvent(new CustomEvent("i18n-change"));
+			};
+
+			const setupI18n = () => {
+				let initial: Locale = "en";
+				try {
+					const stored = window.localStorage.getItem(LOCALE_KEY);
+					if (stored === "es" || stored === "en") initial = stored;
+				} catch (error) {
+					/* ignore */
+				}
+				applyLocale(initial);
+				const toggle = document.querySelector<HTMLElement>("[data-lang-toggle]");
+				toggle?.addEventListener("click", () => {
+					applyLocale(getLocale() === "es" ? "en" : "es");
+				});
+			};
+
 			const setupNavAutohide = () => {
 				const topbar = document.querySelector(".topbar");
 				const contactForm = document.querySelector(".contact-form");
@@ -314,8 +483,6 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 				const statusEl = form.querySelector("[data-form-status]");
 				const status = statusEl instanceof HTMLElement ? statusEl : null;
 				const submitButton = form.querySelector("[type='submit']");
-				const submitLabel =
-					submitButton instanceof HTMLButtonElement ? submitButton.textContent : "";
 				const panel = form.closest(".contact-panel");
 				const thanksEl = panel ? panel.querySelector("[data-contact-thanks]") : null;
 				const thanks = thanksEl instanceof HTMLElement ? thanksEl : null;
@@ -337,9 +504,9 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 					form.dataset.sending = "true";
 					if (submitButton instanceof HTMLButtonElement) {
 						submitButton.disabled = true;
-						submitButton.textContent = "SENDING…";
+						submitButton.textContent = tr("form_sending");
 					}
-					setStatus("pending", "Sending your message…");
+					setStatus("pending", tr("form_status_sending"));
 
 					try {
 						const params = new URLSearchParams();
@@ -357,15 +524,12 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 						form.hidden = true;
 						if (thanks) thanks.hidden = false;
 					} catch (error) {
-						setStatus(
-							"error",
-							"Something went wrong. Please try again or email me directly.",
-						);
+						setStatus("error", tr("form_status_error"));
 					} finally {
 						form.dataset.sending = "false";
 						if (submitButton instanceof HTMLButtonElement) {
 							submitButton.disabled = false;
-							submitButton.textContent = submitLabel;
+							submitButton.textContent = tr("form_send");
 						}
 					}
 				});
@@ -402,8 +566,13 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 				const player = { x: 48, y: 0, vy: 0, r: 11, onGround: true };
 				const groundY = () => height - 24;
 
-				const setHint = (text: string) => {
-					if (hint instanceof HTMLElement) hint.textContent = text;
+				let hintKey = "runner_hint_start";
+				const setHint = (key: string) => {
+					hintKey = key;
+					if (hint instanceof HTMLElement) {
+						hint.setAttribute("data-i18n", key);
+						hint.textContent = tr(key);
+					}
 				};
 
 				const reset = () => {
@@ -419,7 +588,7 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 				const start = () => {
 					state = "running";
 					reset();
-					setHint("Tap or press Space to jump");
+					setHint("runner_hint_jump");
 					lastTime = performance.now();
 					if (!frameId) frameId = window.requestAnimationFrame(loop);
 				};
@@ -446,7 +615,7 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 							/* localStorage no disponible */
 						}
 					}
-					setHint("Tap or press Space to retry");
+					setHint("runner_hint_retry");
 					draw();
 				};
 
@@ -520,7 +689,7 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 					ctx.textBaseline = "alphabetic";
 					ctx.fillStyle = "rgba(240, 236, 228, 0.32)";
 					ctx.textAlign = "left";
-					ctx.fillText("BEST " + String(hiScore).padStart(4, "0"), 12, 21);
+					ctx.fillText(tr("runner_best") + " " + String(hiScore).padStart(4, "0"), 12, 21);
 					ctx.fillStyle = "rgba(240, 236, 228, 0.72)";
 					ctx.textAlign = "right";
 					ctx.fillText(String(Math.floor(score)).padStart(4, "0"), width - 12, 21);
@@ -530,11 +699,11 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 						if (state === "over") {
 							ctx.fillStyle = ACCENT;
 							ctx.font = "700 19px 'Bebas Neue', sans-serif";
-							ctx.fillText("GAME OVER", width / 2, height / 2 + 2);
+							ctx.fillText(tr("runner_game_over"), width / 2, height / 2 + 2);
 						} else {
 							ctx.fillStyle = "rgba(240, 236, 228, 0.5)";
 							ctx.font = "600 11px Inter, sans-serif";
-							ctx.fillText("PRESS TO START", width / 2, height / 2 + 2);
+							ctx.fillText(tr("runner_press_start"), width / 2, height / 2 + 2);
 						}
 					}
 				}
@@ -579,9 +748,15 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 				});
 
 				new ResizeObserver(resize).observe(canvas);
+
+				window.addEventListener("i18n-change", () => {
+					if (hint instanceof HTMLElement) hint.textContent = tr(hintKey);
+					if (state !== "running") draw();
+				});
 			};
 
 			const init = () => {
+				setupI18n();
 				setupNavAutohide();
 				setupContactForm();
 				setupRunnerGame();
@@ -698,6 +873,46 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 	.topbar__actions .topbar__cta {
 		width: auto;
 		flex: 0 0 auto;
+	}
+
+	.topbar__lang {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 auto;
+		width: 2.4rem;
+		height: 2.4rem;
+		padding: 0;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		box-shadow: inset 0 0 0 1px rgba(71, 223, 155, 0.24);
+		color: var(--text-secondary);
+		font-family: "Inter", sans-serif;
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		cursor: pointer;
+		transition:
+			color 180ms ease,
+			box-shadow 180ms ease,
+			background 180ms ease,
+			transform 180ms ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.topbar__lang:hover {
+		color: var(--accent);
+		box-shadow: inset 0 0 0 1px rgba(71, 223, 155, 0.55);
+	}
+
+	.topbar__lang:active {
+		transform: scale(0.94);
+	}
+
+	.topbar__lang:focus-visible {
+		outline: 2px solid rgba(71, 223, 155, 0.55);
+		outline-offset: 2px;
 	}
 
 	.topbar__social-link,
