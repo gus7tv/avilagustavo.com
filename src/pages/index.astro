@@ -126,15 +126,29 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 								</svg>
 							</a>
 						</nav>
-						<button
-							type="button"
-							class="topbar__lang"
-							data-lang-toggle
-							aria-label="Switch language to Spanish"
-						>
-							<span data-lang-target>ES</span>
-						</button>
+						<span class="topbar__sep" aria-hidden="true"></span>
 						<a href="#contacto" class="topbar__cta" data-i18n="nav_contact">Contact</a>
+						<span class="topbar__sep" aria-hidden="true"></span>
+						<div class="topbar__lang" data-lang-dropdown>
+							<button
+								type="button"
+								class="topbar__lang-trigger"
+								data-lang-trigger
+								aria-haspopup="listbox"
+								aria-expanded="false"
+								aria-label="Language"
+							>
+								<span data-lang-current>EN</span>
+							</button>
+							<ul class="topbar__lang-menu" data-lang-menu role="listbox">
+								<li>
+									<button type="button" class="topbar__lang-option" data-lang-value="en" role="option">EN</button>
+								</li>
+								<li>
+									<button type="button" class="topbar__lang-option" data-lang-value="es" role="option">ES</button>
+								</li>
+							</ul>
+						</div>
 					</div>
 				</header>
 
@@ -430,15 +444,19 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 					const value = safe === "es" ? es : en;
 					if (value != null) el.textContent = value;
 				});
-				const toggle = document.querySelector<HTMLElement>("[data-lang-toggle]");
-				if (toggle) {
-					toggle.setAttribute(
-						"aria-label",
-						safe === "es" ? "Cambiar idioma a inglés" : "Switch language to Spanish",
-					);
-					const target = toggle.querySelector<HTMLElement>("[data-lang-target]");
-					if (target) target.textContent = safe === "es" ? "EN" : "ES";
+				const trigger = document.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+				if (trigger) {
+					trigger.setAttribute("aria-label", safe === "es" ? "Idioma" : "Language");
+					const current = trigger.querySelector<HTMLElement>("[data-lang-current]");
+					if (current) current.textContent = safe === "es" ? "ES" : "EN";
 				}
+				document.querySelectorAll<HTMLElement>("[data-lang-value]").forEach((opt) => {
+					if (opt.getAttribute("data-lang-value") === safe) {
+						opt.setAttribute("aria-current", "true");
+					} else {
+						opt.removeAttribute("aria-current");
+					}
+				});
 				try {
 					window.localStorage.setItem(LOCALE_KEY, safe);
 				} catch (error) {
@@ -456,9 +474,41 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 					/* ignore */
 				}
 				applyLocale(initial);
-				const toggle = document.querySelector<HTMLElement>("[data-lang-toggle]");
-				toggle?.addEventListener("click", () => {
-					applyLocale(getLocale() === "es" ? "en" : "es");
+
+				const dropdown = document.querySelector<HTMLElement>("[data-lang-dropdown]");
+				const trigger = dropdown?.querySelector<HTMLButtonElement>("[data-lang-trigger]");
+				const menu = dropdown?.querySelector<HTMLElement>("[data-lang-menu]");
+
+				const setOpen = (open: boolean) => {
+					if (!trigger || !menu) return;
+					trigger.setAttribute("aria-expanded", open ? "true" : "false");
+					menu.setAttribute("data-open", open ? "true" : "false");
+				};
+
+				trigger?.addEventListener("click", (event) => {
+					event.stopPropagation();
+					const isOpen = trigger.getAttribute("aria-expanded") === "true";
+					setOpen(!isOpen);
+				});
+
+				dropdown?.querySelectorAll<HTMLButtonElement>("[data-lang-value]").forEach((opt) => {
+					opt.addEventListener("click", () => {
+						const value = opt.getAttribute("data-lang-value");
+						if (value === "en" || value === "es") {
+							applyLocale(value);
+							setOpen(false);
+						}
+					});
+				});
+
+				document.addEventListener("click", (event) => {
+					if (!dropdown) return;
+					if (event.target instanceof Node && dropdown.contains(event.target)) return;
+					setOpen(false);
+				});
+
+				document.addEventListener("keydown", (event) => {
+					if (event.key === "Escape") setOpen(false);
 				});
 			};
 
@@ -875,13 +925,25 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 		flex: 0 0 auto;
 	}
 
+	.topbar__sep {
+		display: inline-block;
+		flex: 0 0 auto;
+		width: 1px;
+		height: 1.6rem;
+		background: rgba(255, 255, 255, 0.12);
+	}
+
 	.topbar__lang {
+		position: relative;
+		flex: 0 0 auto;
+	}
+
+	.topbar__lang-trigger {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		flex: 0 0 auto;
-		width: 2.4rem;
-		height: 2.4rem;
+		width: 2.5rem;
+		height: 2.5rem;
 		padding: 0;
 		border: 0;
 		border-radius: 999px;
@@ -889,9 +951,9 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 		box-shadow: inset 0 0 0 1px rgba(71, 223, 155, 0.24);
 		color: var(--text-secondary);
 		font-family: "Inter", sans-serif;
-		font-size: 0.7rem;
+		font-size: 0.72rem;
 		font-weight: 700;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.08em;
 		cursor: pointer;
 		transition:
 			color 180ms ease,
@@ -901,18 +963,81 @@ const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.topbar__lang:hover {
+	.topbar__lang-trigger:hover,
+	.topbar__lang-trigger[aria-expanded="true"] {
 		color: var(--accent);
 		box-shadow: inset 0 0 0 1px rgba(71, 223, 155, 0.55);
 	}
 
-	.topbar__lang:active {
+	.topbar__lang-trigger:active {
 		transform: scale(0.94);
 	}
 
-	.topbar__lang:focus-visible {
+	.topbar__lang-trigger:focus-visible {
 		outline: 2px solid rgba(71, 223, 155, 0.55);
 		outline-offset: 2px;
+	}
+
+	.topbar__lang-menu {
+		position: absolute;
+		top: calc(100% + 0.55rem);
+		right: 0;
+		z-index: 30;
+		display: grid;
+		gap: 0.12rem;
+		min-width: 5rem;
+		margin: 0;
+		padding: 0.32rem;
+		list-style: none;
+		background: rgba(6, 12, 18, 0.94);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		border-radius: 0.85rem;
+		box-shadow:
+			inset 0 0 0 1px rgba(71, 223, 155, 0.18),
+			0 14px 36px rgba(0, 0, 0, 0.5);
+		opacity: 0;
+		transform: translateY(-4px) scale(0.98);
+		transform-origin: top right;
+		pointer-events: none;
+		transition: opacity 160ms ease, transform 160ms ease;
+	}
+
+	.topbar__lang-menu[data-open="true"] {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+		pointer-events: auto;
+	}
+
+	.topbar__lang-option {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		padding: 0.45rem 0.85rem;
+		border: 0;
+		border-radius: 0.55rem;
+		background: transparent;
+		color: var(--text-secondary);
+		font-family: "Inter", sans-serif;
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		cursor: pointer;
+		transition: background 160ms ease, color 160ms ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.topbar__lang-option:hover,
+	.topbar__lang-option:focus-visible {
+		background: rgba(71, 223, 155, 0.12);
+		color: var(--accent);
+		outline: none;
+	}
+
+	.topbar__lang-option[aria-current="true"] {
+		color: var(--accent);
+		background: rgba(71, 223, 155, 0.08);
 	}
 
 	.topbar__social-link,
