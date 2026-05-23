@@ -16,6 +16,7 @@ const proyectos = defineCollection({
 		previewVideo: z.string().optional(),
 		category: z.string(),
 		url: z.string(),
+		order: z.number().optional(),
 	}),
 });
 

@@ -8,8 +8,7 @@ import { getCollection } from "astro:content";
 import { X } from "lucide";
 
 const projects = (await getCollection("proyectos"))
-	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-	.slice(0, 4);
+	.sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
 
 const currentYear = new Date().getFullYear();
 
@@ -23,6 +22,25 @@ const socialLinks = [
 ];
 
 const xIconPaths = X.map(([, attrs]) => attrs);
+
+const socialIcons: Record<string, { stroke: boolean; paths: string[] }> = {
+	GitHub: {
+		stroke: false,
+		paths: [
+			"M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69c.5.1.68-.22.68-.48c0-.24-.01-1.04-.01-1.89c-2.78.62-3.37-1.21-3.37-1.21c-.45-1.18-1.11-1.49-1.11-1.49c-.91-.64.07-.63.07-.63c1 .08 1.53 1.05 1.53 1.05c.9 1.57 2.36 1.12 2.94.86c.09-.67.35-1.12.64-1.37c-2.22-.26-4.56-1.14-4.56-5.08c0-1.12.39-2.03 1.03-2.75c-.1-.26-.45-1.31.1-2.74c0 0 .84-.28 2.75 1.05A9.33 9.33 0 0 1 12 6.84a9.3 9.3 0 0 1 2.5.35c1.9-1.33 2.74-1.05 2.74-1.05c.56 1.43.21 2.48.11 2.74c.64.72 1.03 1.63 1.03 2.75c0 3.95-2.34 4.82-4.57 5.07c.36.32.69.95.69 1.92c0 1.39-.01 2.5-.01 2.84c0 .27.18.59.69.48A10.24 10.24 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z",
+		],
+	},
+	LinkedIn: {
+		stroke: false,
+		paths: [
+			"M20.45 20.45h-3.56v-5.58c0-1.33-.02-3.03-1.85-3.03c-1.85 0-2.13 1.44-2.13 2.94v5.67H9.35V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85c3.61 0 4.28 2.38 4.28 5.48v6.26ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14a2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.56V9h3.56v11.45Z",
+		],
+	},
+	X: {
+		stroke: true,
+		paths: xIconPaths.map((attrs) => String(attrs.d)),
+	},
+};
 ---
 
 <!DOCTYPE html>
@@ -154,70 +172,427 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 								about your proposal, idea, or project.
 							</p>
 
-							<div class="contact-links">
-								{socialLinks.map((item) => (
-									<a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel={item.href.startsWith("http") ? "noreferrer" : undefined}>
-										{item.label}
-									</a>
-								))}
+							<div class="contact-certs">
+								<span class="contact-eyebrow">Certifications</span>
+								<div class="contact-certs__items">
+									<img
+										src="/google-certification.png"
+										alt="Google AI Professional certificate"
+										loading="lazy"
+										decoding="async"
+									/>
+									<img
+										src="/meta-certification.png"
+										alt="Meta Front-End Developer certificate"
+										loading="lazy"
+										decoding="async"
+									/>
+								</div>
+							</div>
+
+							<div class="contact-connect">
+								<span class="contact-eyebrow">Let's stay in touch</span>
+								<div class="contact-links">
+									{socialLinks.map((item) => {
+										const icon = socialIcons[item.label];
+										return (
+											<a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel={item.href.startsWith("http") ? "noreferrer" : undefined}>
+												{icon && (
+													<svg
+														class="contact-links__icon"
+														aria-hidden="true"
+														viewBox="0 0 24 24"
+														fill={icon.stroke ? "none" : "currentColor"}
+														stroke={icon.stroke ? "currentColor" : undefined}
+														stroke-width={icon.stroke ? 2 : undefined}
+														stroke-linecap={icon.stroke ? "round" : undefined}
+														stroke-linejoin={icon.stroke ? "round" : undefined}
+													>
+														{icon.paths.map((d) => (
+															<path d={d} />
+														))}
+													</svg>
+												)}
+												<span>{item.label}</span>
+											</a>
+										);
+									})}
+								</div>
 							</div>
 						</div>
 
-						<form
-							class="contact-form"
-							id="form"
-							name="contact"
-							action="/ty"
-							method="POST"
-							data-netlify="true"
-							data-netlify-recaptcha="true"
-						>
-							<input type="hidden" name="form-name" value="contact" />
-							<label>
-								<span>Name</span>
-								<input type="text" name="nombre" placeholder="Your name" autocomplete="name" required />
-							</label>
+						<div class="contact-panel">
+							<form
+								class="contact-form"
+								id="form"
+								name="contact"
+								action="/ty"
+								method="POST"
+								data-netlify="true"
+								data-netlify-honeypot="bot-field"
+							>
+								<input type="hidden" name="form-name" value="contact" />
+								<p class="contact-form__honeypot" hidden>
+									<label>Don't fill this out if you're human: <input name="bot-field" /></label>
+								</p>
+								<label>
+									<span>Name</span>
+									<input type="text" name="nombre" placeholder="Your name" autocomplete="name" required />
+								</label>
 
-							<label>
-								<span>Email address</span>
-								<input
-									type="email"
-									name="correo"
-									placeholder="email@domain.com"
-									autocomplete="email"
-									required
-								/>
-							</label>
+								<label>
+									<span>Email address</span>
+									<input
+										type="email"
+										name="correo"
+										placeholder="email@domain.com"
+										autocomplete="email"
+										required
+									/>
+								</label>
 
-							<label>
-								<span>Message</span>
-								<textarea
-									name="mensaje"
-									rows="5"
-									placeholder="Tell me what you're building."
-									required
-								></textarea>
-							</label>
+								<label>
+									<span>Message</span>
+									<textarea
+										name="mensaje"
+										rows="5"
+										placeholder="Tell me what you're building."
+										required
+									></textarea>
+								</label>
 
-							<div data-netlify-recaptcha="true"></div>
+								<button class="topbar__cta contact-submit-button" type="submit">SEND MESSAGE</button>
 
-							<button class="topbar__cta contact-submit-button" type="submit">SEND MESSAGE</button>
-						</form>
+								<p class="contact-form__status" data-form-status role="status" aria-live="polite"></p>
+							</form>
+
+							<div class="contact-thanks" data-contact-thanks hidden>
+								<p class="contact-thanks__kicker">Message received</p>
+								<h3 class="contact-thanks__title">Thank you</h3>
+								<p class="contact-thanks__text">
+									I'm reviewing your details and I'll get back to you very soon.
+								</p>
+								<div class="runner" data-runner>
+									<p class="runner__label">While you wait — try to beat my record</p>
+									<canvas
+										class="runner__canvas"
+										data-runner-canvas
+										aria-label="Pulse Runner mini game"
+									></canvas>
+									<p class="runner__hint" data-runner-hint>Tap or press Space to play</p>
+								</div>
+							</div>
+						</div>
 					</section>
 				</main>
 
 				<footer class="page-footer">
-						<p>{`©${currentYear} GUSTAVO AVILA · ALL RIGHTS RESERVED`}</p>
-					<div>
-						{socialLinks.map((item) => (
-							<a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel={item.href.startsWith("http") ? "noreferrer" : undefined}>
-								{item.label}
-							</a>
-						))}
-					</div>
+					<p>{`©${currentYear} GUSTAVO AVILA · ALL RIGHTS RESERVED`}</p>
 				</footer>
 			</div>
 		</div>
+
+		<script>
+			const setupNavAutohide = () => {
+				const topbar = document.querySelector(".topbar");
+				const contactForm = document.querySelector(".contact-form");
+				if (!topbar || !contactForm) return;
+
+				const observer = new IntersectionObserver(
+					([entry]) => {
+						topbar.classList.toggle("topbar--hidden", entry.isIntersecting);
+					},
+					{ rootMargin: "0px 0px -12% 0px" },
+				);
+				observer.observe(contactForm);
+			};
+
+			const setupContactForm = () => {
+				const form = document.querySelector(".contact-form");
+				if (!(form instanceof HTMLFormElement)) return;
+
+				const statusEl = form.querySelector("[data-form-status]");
+				const status = statusEl instanceof HTMLElement ? statusEl : null;
+				const submitButton = form.querySelector("[type='submit']");
+				const submitLabel =
+					submitButton instanceof HTMLButtonElement ? submitButton.textContent : "";
+				const panel = form.closest(".contact-panel");
+				const thanksEl = panel ? panel.querySelector("[data-contact-thanks]") : null;
+				const thanks = thanksEl instanceof HTMLElement ? thanksEl : null;
+
+				const setStatus = (state: string, message: string) => {
+					if (!status) return;
+					status.dataset.state = state;
+					status.textContent = message;
+				};
+
+				form.addEventListener("submit", async (event) => {
+					event.preventDefault();
+					if (form.dataset.sending === "true") return;
+
+					// Honeypot: si el campo trampa trae valor, es un bot.
+					const honeypot = form.querySelector("[name='bot-field']");
+					if (honeypot instanceof HTMLInputElement && honeypot.value) return;
+
+					form.dataset.sending = "true";
+					if (submitButton instanceof HTMLButtonElement) {
+						submitButton.disabled = true;
+						submitButton.textContent = "SENDING…";
+					}
+					setStatus("pending", "Sending your message…");
+
+					try {
+						const params = new URLSearchParams();
+						new FormData(form).forEach((value, key) => {
+							params.append(key, typeof value === "string" ? value : "");
+						});
+						const response = await fetch("/", {
+							method: "POST",
+							headers: { "Content-Type": "application/x-www-form-urlencoded" },
+							body: params.toString(),
+						});
+						if (!response.ok) throw new Error(`Request failed (${response.status})`);
+
+						form.reset();
+						form.hidden = true;
+						if (thanks) thanks.hidden = false;
+					} catch (error) {
+						setStatus(
+							"error",
+							"Something went wrong. Please try again or email me directly.",
+						);
+					} finally {
+						form.dataset.sending = "false";
+						if (submitButton instanceof HTMLButtonElement) {
+							submitButton.disabled = false;
+							submitButton.textContent = submitLabel;
+						}
+					}
+				});
+			};
+
+			const setupRunnerGame = () => {
+				const root = document.querySelector("[data-runner]");
+				if (!(root instanceof HTMLElement)) return;
+				const canvas = root.querySelector("[data-runner-canvas]");
+				const hint = root.querySelector("[data-runner-hint]");
+				if (!(canvas instanceof HTMLCanvasElement)) return;
+				const ctx = canvas.getContext("2d");
+				if (!ctx) return;
+
+				const ACCENT = "#47df9b";
+				const HISCORE_KEY = "gavila:runner-hiscore";
+
+				let width = 0;
+				let height = 0;
+				let state = "idle";
+				let score = 0;
+				let speed = 0;
+				let spawnTimer = 0;
+				let obstacles: { x: number; w: number; h: number }[] = [];
+				let frameId = 0;
+				let lastTime = 0;
+				let hiScore = 0;
+				try {
+					hiScore = Number(window.localStorage.getItem(HISCORE_KEY)) || 0;
+				} catch (error) {
+					hiScore = 0;
+				}
+
+				const player = { x: 48, y: 0, vy: 0, r: 11, onGround: true };
+				const groundY = () => height - 24;
+
+				const setHint = (text: string) => {
+					if (hint instanceof HTMLElement) hint.textContent = text;
+				};
+
+				const reset = () => {
+					score = 0;
+					speed = 0.34;
+					obstacles = [];
+					spawnTimer = 520;
+					player.y = groundY() - player.r;
+					player.vy = 0;
+					player.onGround = true;
+				};
+
+				const start = () => {
+					state = "running";
+					reset();
+					setHint("Tap or press Space to jump");
+					lastTime = performance.now();
+					if (!frameId) frameId = window.requestAnimationFrame(loop);
+				};
+
+				const jump = () => {
+					if (state === "running") {
+						if (player.onGround) {
+							player.vy = -0.47;
+							player.onGround = false;
+						}
+						return;
+					}
+					start();
+				};
+
+				const gameOver = () => {
+					state = "over";
+					const final = Math.floor(score);
+					if (final > hiScore) {
+						hiScore = final;
+						try {
+							window.localStorage.setItem(HISCORE_KEY, String(hiScore));
+						} catch (error) {
+							/* localStorage no disponible */
+						}
+					}
+					setHint("Tap or press Space to retry");
+					draw();
+				};
+
+				const update = (dt: number) => {
+					score += dt * 0.012;
+					speed += dt * 0.000015;
+
+					player.vy += 0.0019 * dt;
+					player.y += player.vy * dt;
+					const floor = groundY() - player.r;
+					if (player.y >= floor) {
+						player.y = floor;
+						player.vy = 0;
+						player.onGround = true;
+					}
+
+					spawnTimer -= dt;
+					if (spawnTimer <= 0) {
+						obstacles.push({
+							x: width + 24,
+							w: 12 + Math.random() * 11,
+							h: 16 + Math.random() * 22,
+						});
+						spawnTimer = Math.max(360, 760 + Math.random() * 620 - score * 1.1);
+					}
+					for (const o of obstacles) o.x -= speed * dt;
+					obstacles = obstacles.filter((o) => o.x + o.w > -12);
+
+					const px = player.x - player.r * 0.78;
+					const pw = player.r * 1.56;
+					const pBottom = player.y + player.r * 0.78;
+					for (const o of obstacles) {
+						const oy = groundY() - o.h;
+						if (px < o.x + o.w && px + pw > o.x && pBottom > oy) {
+							gameOver();
+							return;
+						}
+					}
+				};
+
+				function draw() {
+					if (!ctx) return;
+					ctx.clearRect(0, 0, width, height);
+
+					const gy = groundY();
+					ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+					ctx.lineWidth = 1;
+					ctx.beginPath();
+					ctx.moveTo(0, gy + 0.5);
+					ctx.lineTo(width, gy + 0.5);
+					ctx.stroke();
+
+					ctx.fillStyle = "rgba(217, 227, 246, 0.16)";
+					ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+					for (const o of obstacles) {
+						const oy = gy - o.h;
+						ctx.fillRect(o.x, oy, o.w, o.h);
+						ctx.strokeRect(o.x + 0.5, oy + 0.5, o.w - 1, o.h - 1);
+					}
+
+					ctx.save();
+					ctx.shadowColor = ACCENT;
+					ctx.shadowBlur = 16;
+					ctx.fillStyle = ACCENT;
+					ctx.beginPath();
+					ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.restore();
+
+					ctx.font = "600 12px Inter, sans-serif";
+					ctx.textBaseline = "alphabetic";
+					ctx.fillStyle = "rgba(240, 236, 228, 0.32)";
+					ctx.textAlign = "left";
+					ctx.fillText("BEST " + String(hiScore).padStart(4, "0"), 12, 21);
+					ctx.fillStyle = "rgba(240, 236, 228, 0.72)";
+					ctx.textAlign = "right";
+					ctx.fillText(String(Math.floor(score)).padStart(4, "0"), width - 12, 21);
+
+					if (state !== "running") {
+						ctx.textAlign = "center";
+						if (state === "over") {
+							ctx.fillStyle = ACCENT;
+							ctx.font = "700 19px 'Bebas Neue', sans-serif";
+							ctx.fillText("GAME OVER", width / 2, height / 2 + 2);
+						} else {
+							ctx.fillStyle = "rgba(240, 236, 228, 0.5)";
+							ctx.font = "600 11px Inter, sans-serif";
+							ctx.fillText("PRESS TO START", width / 2, height / 2 + 2);
+						}
+					}
+				}
+
+				function loop(now: number) {
+					frameId = 0;
+					if (state !== "running") return;
+					const dt = Math.min(48, now - lastTime);
+					lastTime = now;
+					update(dt);
+					if (state === "running") {
+						draw();
+						frameId = window.requestAnimationFrame(loop);
+					}
+				}
+
+				const resize = () => {
+					const rect = canvas.getBoundingClientRect();
+					if (!rect.width || !rect.height) return;
+					const dpr = Math.min(window.devicePixelRatio || 1, 2);
+					width = rect.width;
+					height = rect.height;
+					canvas.width = Math.round(width * dpr);
+					canvas.height = Math.round(height * dpr);
+					ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+					if (state !== "running") {
+						player.y = groundY() - player.r;
+						draw();
+					}
+				};
+
+				canvas.addEventListener("pointerdown", (event) => {
+					event.preventDefault();
+					jump();
+				});
+
+				window.addEventListener("keydown", (event) => {
+					if (event.code !== "Space" && event.code !== "ArrowUp") return;
+					if (root.offsetParent === null) return;
+					event.preventDefault();
+					jump();
+				});
+
+				new ResizeObserver(resize).observe(canvas);
+			};
+
+			const init = () => {
+				setupNavAutohide();
+				setupContactForm();
+				setupRunnerGame();
+			};
+
+			if (document.readyState === "loading") {
+				document.addEventListener("DOMContentLoaded", init, { once: true });
+			} else {
+				init();
+			}
+		</script>
 	</body>
 </html>
 
@@ -257,6 +632,13 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		border-bottom: 1px solid rgba(71, 223, 155, 0.08);
 		background: rgba(0, 0, 0, 0.78);
 		backdrop-filter: blur(16px);
+		transition: transform 360ms ease, opacity 360ms ease;
+	}
+
+	.topbar--hidden {
+		transform: translateY(-100%);
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.topbar__brand {
@@ -319,7 +701,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	.topbar__social-link,
-	.page-footer a,
 	.contact-links a {
 		color: var(--text-secondary);
 		font-family: "Inter", sans-serif;
@@ -346,7 +727,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	.topbar__social-link:hover,
-	.page-footer a:hover,
 	.contact-links a:hover {
 		color: var(--accent);
 	}
@@ -781,8 +1161,40 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	}
 
 	.contact-copy p {
-		margin: 0;
+		margin: 0 0 2.5rem;
 		color: var(--text-muted);
+	}
+
+	.contact-certs {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.contact-eyebrow {
+		font-family: "Inter", sans-serif;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.contact-connect {
+		display: grid;
+		gap: 0.7rem;
+	}
+
+	.contact-certs__items {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.9rem;
+	}
+
+	.contact-certs__items img {
+		display: block;
+		height: 88px;
+		width: auto;
 	}
 
 	.section-block {
@@ -807,7 +1219,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		display: grid;
 		grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
 		gap: 1.4rem;
-		align-items: start;
+		align-items: stretch;
 	}
 
 	.contact-copy {
@@ -823,6 +1235,18 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		padding-top: 0.35rem;
 	}
 
+	.contact-links a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.contact-links__icon {
+		width: 1.05rem;
+		height: 1.05rem;
+		flex-shrink: 0;
+	}
+
 	.contact-form {
 		display: grid;
 		gap: 1rem;
@@ -831,6 +1255,122 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.contact-form label {
 		display: grid;
 		gap: 0.55rem;
+	}
+
+	.contact-form__status {
+		margin: 0;
+		min-height: 1.1em;
+		font-family: "Inter", sans-serif;
+		font-size: 0.82rem;
+		letter-spacing: 0.02em;
+		color: var(--text-muted);
+		transition: color 200ms ease;
+	}
+
+	.contact-form__status:empty {
+		display: none;
+	}
+
+	.contact-form__status[data-state="success"] {
+		color: var(--accent);
+	}
+
+	.contact-form__status[data-state="error"] {
+		color: #ff8f8f;
+	}
+
+	.contact-panel {
+		display: grid;
+	}
+
+	.contact-form[hidden],
+	.contact-thanks[hidden] {
+		display: none;
+	}
+
+	.contact-thanks {
+		display: grid;
+		place-content: center;
+		justify-items: center;
+		gap: 0.9rem;
+		padding: clamp(2.6rem, 7vw, 4rem) 1.7rem;
+		text-align: center;
+		animation: contact-thanks-in 480ms ease both;
+	}
+
+	.contact-thanks__kicker {
+		margin: 0;
+		font-family: "Inter", sans-serif;
+		font-size: 0.72rem;
+		font-weight: 700;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+
+	.contact-thanks__title {
+		margin: 0;
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(2.6rem, 5vw, 4rem);
+		font-weight: 700;
+		line-height: 0.9;
+		text-transform: uppercase;
+		color: #d9e3f6;
+	}
+
+	.contact-thanks__text {
+		margin: 0;
+		max-width: 26rem;
+		color: var(--text-muted);
+		font-size: 0.95rem;
+		line-height: 1.4;
+	}
+
+	.runner {
+		display: grid;
+		gap: 0.5rem;
+		justify-items: center;
+		width: 100%;
+		margin-top: 0.7rem;
+	}
+
+	.runner__label,
+	.runner__hint {
+		margin: 0;
+		font-family: "Inter", sans-serif;
+		font-size: 0.62rem;
+		font-weight: 600;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.runner__canvas {
+		width: 100%;
+		max-width: 30rem;
+		height: 150px;
+		border-radius: 0.9rem;
+		background: rgba(255, 255, 255, 0.03);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+		cursor: pointer;
+		touch-action: manipulation;
+	}
+
+	@keyframes contact-thanks-in {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.contact-thanks {
+			animation: none;
+		}
 	}
 
 	.contact-form span {
@@ -862,7 +1402,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.page-footer {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: center;
 		gap: 1rem;
 		padding: 4rem 0 1rem;
 	}
@@ -870,12 +1410,6 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 	.page-footer p {
 		margin: 0;
 		color: var(--text-muted);
-	}
-
-	.page-footer div {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1.25rem;
 	}
 
 	@media (max-width: 960px) {
@@ -983,7 +1517,10 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 		}
 
 		.hero__name {
-			font-size: clamp(4.2rem, 20.5vw, 6.4rem);
+			flex-direction: column;
+			gap: 0;
+			line-height: 0.84;
+			font-size: clamp(4.4rem, 21vw, 9rem);
 		}
 
 		.hero__phase--creative {
@@ -1000,7 +1537,7 @@ const xIconPaths = X.map(([, attrs]) => attrs);
 
 		.page-footer {
 			flex-direction: column;
-			align-items: flex-start;
+			align-items: center;
 			padding-top: 3rem;
 		}
 	}

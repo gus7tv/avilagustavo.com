@@ -40,15 +40,9 @@
 	};
 
 	function shouldEnableHeroGui() {
-		const params = new URLSearchParams(window.location.search);
-		const isLocalPreview = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
-
-		return (
-			isLocalPreview ||
-			params.has('heroGui') ||
-			params.get('gui') === 'hero' ||
-			safeStorage.get(HERO_GUI_ENABLED_KEY) === 'true'
-		);
+		// Controles lil-gui del hero desactivados — los valores actuales son los definitivos.
+		// Para reactivarlos, restaurar el gate por localhost / query param / localStorage.
+		return false;
 	}
 
 	function makeTuningDefaults(isMobile) {
@@ -342,7 +336,7 @@
 			const vortexOpen = smoothstep(tuning.vortexOpenStart, tuning.vortexOpenEnd, progress);
 			const heroExit = smoothstep(tuning.heroExitStart, tuning.heroExitEnd, progress);
 			const projectsEnter = smoothstep(tuning.projectsEnterStart, tuning.projectsEnterEnd, progress);
-			const heroOpacity = 1 - smoothstep(0.84, 0.96, progress);
+			const heroOpacity = 1 - smoothstep(0.84, 0.92, progress);
 			const heroTitleOpacity = 1 - smoothstep(0.2, 0.3, progress);
 			const heroCreativeOpacity =
 				smoothstep(0.2, 0.3, progress) * (1 - smoothstep(0.4, 0.5, progress));
@@ -354,7 +348,6 @@
 			const heroBasedY = lerp(0, 5, smoothstep(0.4, 0.7, progress));
 			const projectsOpacity = smoothstep(0.7, 0.92, progress);
 			const scrollHintOpacity = 1 - smoothstep(0.62, 0.86, progress);
-			const projectsProgress = smoothstep(0.86, 1, progress);
 			const projectsReveal = lerp(0, tuning.projectRevealMax, smoothstep(tuning.projectRevealStart, tuning.projectRevealEnd, progress));
 			const projectsRevealEdge = Math.min(170, projectsReveal + tuning.projectRevealFeather);
 
@@ -377,7 +370,6 @@
 			stage.style.setProperty('--projects-z', `${lerp(-720, 0, projectsEnter).toFixed(3)}px`);
 			stage.style.setProperty('--projects-tilt', `${lerp(-8, 0, projectsEnter).toFixed(3)}deg`);
 			stage.style.setProperty('--projects-scale', lerp(0.82, 1, projectsEnter).toFixed(3));
-			stage.style.setProperty('--projects-progress', projectsProgress.toFixed(4));
 			stage.style.setProperty('--z-progress', progress.toFixed(4));
 			stage.style.setProperty('--projects-reveal', `${projectsReveal.toFixed(3)}%`);
 			stage.style.setProperty('--projects-reveal-edge', `${projectsRevealEdge.toFixed(3)}%`);

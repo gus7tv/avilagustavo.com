@@ -26,7 +26,7 @@ Personal portfolio for Gustavo Avila — a single-page Astro site built around h
   - `HeroMouseDistortion.astro` — Three.js fragment-shader mouse-reactive hero background
   - `ProjectsMonitor.astro` — featured projects media panel ("monitor" UI)
   - `ScrollSpace3D.astro` — scroll-driven 3D scene
-- **`src/content/proyectos/`** — Astro content collection of project markdown files. Schema in `src/content/config.ts` (Spanish field names retained). Frontmatter: `title, description, pubDate, heroImage, previewVideo?, category, url`. `index.astro` shows the 4 most recent.
+- **`src/content/proyectos/`** — Astro content collection of project markdown files. Schema in `src/content/config.ts` (Spanish field names retained). Frontmatter: `title, description, pubDate, heroImage, previewVideo?, category, url, order?`. `index.astro` shows all projects sorted by `order` ascending.
 - **`src/styles/global.css`** — only global tokens (CSS custom properties for the palette) + reset + the `.noise` overlay + `.button-outline` shared component. Everything else is scoped per-component.
 - **`public/`** — static assets (project screenshots, logo, CV, `noise.svg`).
 

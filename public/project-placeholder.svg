@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Project preview placeholder">
+	<defs>
+		<radialGradient id="glow" cx="50%" cy="36%" r="62%">
+			<stop offset="0%" stop-color="#0f2a22" />
+			<stop offset="100%" stop-color="#060f14" />
+		</radialGradient>
+	</defs>
+	<rect width="1280" height="720" fill="url(#glow)" />
+	<circle cx="640" cy="322" r="58" fill="none" stroke="#47df9b" stroke-opacity="0.5" stroke-width="2" />
+	<path d="M623 294 l36 28 -36 28 Z" fill="#47df9b" fill-opacity="0.82" />
+	<text x="640" y="446" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" letter-spacing="7" fill="#bdc7d9" fill-opacity="0.55">PROJECT PREVIEW</text>
+</svg>

@@ -2,16 +2,19 @@
 const { projects } = Astro.props;
 
 const projectEntries = projects.map((project, index) => {
-	const roleLine =
-		project.data.description.match(/#[\w./+-]+/g)?.slice(0, 4).map((tag) => tag.replace("#", "")).join(" · ") ||
-		project.data.category.toUpperCase();
+	const tags =
+		project.data.description
+			.match(/#[\w./+-]+/g)
+			?.slice(0, 4)
+			.map((tag) => tag.replace("#", "").replace(/\.+$/, "")) ??
+		[project.data.category.toUpperCase()];
 
 	return {
 		index: String(index + 1).padStart(2, "0"),
 		title: project.data.title.toUpperCase(),
 		category: project.data.category.toUpperCase(),
 		description: project.data.description,
-		roleLine,
+		tags,
 		year: new Date(project.data.pubDate).getFullYear(),
 		heroImage:
 			typeof project.data.heroImage === "string"
@@ -33,10 +36,36 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 >
 	<div class="projects-monitor__hud">
 		<span>FEATURED PROJECTS</span>
-		<span class="projects-monitor__hud-counter">
-			<strong data-project-current>01</strong>
-			<small>{`/ ${totalProjectsLabel}`}</small>
-		</span>
+		<div class="projects-monitor__controls">
+			{projectEntries.length > 1 && (
+				<button
+					type="button"
+					class="projects-monitor__nav"
+					data-project-prev
+					aria-label="Previous project"
+				>
+					<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<path d="M15 5 8 12l7 7" />
+					</svg>
+				</button>
+			)}
+			<span class="projects-monitor__hud-counter">
+				<strong data-project-current>01</strong>
+				<small>{`/ ${totalProjectsLabel}`}</small>
+			</span>
+			{projectEntries.length > 1 && (
+				<button
+					type="button"
+					class="projects-monitor__nav"
+					data-project-next
+					aria-label="Next project"
+				>
+					<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+						<path d="m9 5 7 7-7 7" />
+					</svg>
+				</button>
+			)}
+		</div>
 	</div>
 
 	<div class="projects-monitor__frame">
@@ -79,7 +108,16 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				projectEntries.map((project, index) => (
 					<div class="projects-monitor__copy" data-project-copy data-copy-index={index}>
 						<h3>{project.title}</h3>
-						<p class="projects-monitor__copy-role">{project.roleLine}</p>
+						{project.tags.length > 0 && (
+							<div class="projects-monitor__tags">
+								<span class="projects-monitor__tags-label">Made with</span>
+								<ul class="projects-monitor__tag-list">
+									{project.tags.map((tag) => (
+										<li class="projects-monitor__tag">{tag}</li>
+									))}
+								</ul>
+							</div>
+						)}
 					</div>
 				))
 			}
@@ -91,6 +129,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 <script type="module" define:vars={{ projectEntries }}>
 	const clampValue = (value, min, max) => Math.min(max, Math.max(min, value));
 	const easeHoverAxis = (value) => Math.sin(value * (Math.PI / 2));
+	const AUTO_ADVANCE_MS = 30000;
 
 	const mountProjectMonitor = () => {
 		document.querySelectorAll("[data-project-monitor]").forEach((root) => {
@@ -103,28 +142,37 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			const shell = root.querySelector("[data-project-shell]");
 			const copies = [...root.querySelectorAll("[data-project-copy]")];
 			const currentLabel = root.querySelector("[data-project-current]");
+			const prevButton = root.querySelector("[data-project-prev]");
+			const nextButton = root.querySelector("[data-project-next]");
 			const layers = [...root.querySelectorAll("[data-project-layer]")].map((element) => ({
 				element,
 				image: element.querySelector("[data-project-image]"),
 				video: element.querySelector("[data-project-video]"),
 				currentProjectKey: "",
+				assignedIndex: null,
 				videoReady: false,
 				cleanupReady: null,
 			}));
 
 			if (!stage || !frame || !mediaLink || !shell || layers.length !== 2) return;
 
-			const baseLayer = layers[0];
-			const overlayLayer = layers[1];
+			const maxIndex = Math.max(0, projectEntries.length - 1);
 			const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+			const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 			const hoverTarget = { x: 0, y: 0, lift: 0 };
 			const hoverState = { x: 0, y: 0, lift: 0 };
 
 			let frameId = 0;
-			let lastProgress = -1;
+			let targetIndex = 0;
+			let displayIndex = 0;
+			let fromIndex = 0;
+			let transitionStartTime = 0;
+			let transitionDuration = 0;
 			let isMonitorVisible = true;
+			let projectsPanelActive = false;
 			let visibilityObserver = null;
 			let activeVideoIndicesKey = "";
+			let autoAdvanceTimer = 0;
 
 			const requestRender = () => {
 				if (!isMonitorVisible || frameId) return;
@@ -262,137 +310,201 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 				shell.addEventListener("pointerleave", resetPointer);
 			}
 
+			const stopAutoAdvance = () => {
+				if (!autoAdvanceTimer) return;
+				window.clearTimeout(autoAdvanceTimer);
+				autoAdvanceTimer = 0;
+			};
+
+			const setTargetIndex = (index) => {
+				const next = clampValue(index, 0, maxIndex);
+				if (next === targetIndex) return;
+				fromIndex = targetIndex;
+				transitionStartTime = performance.now();
+				const distance = Math.abs(next - fromIndex);
+				transitionDuration = Math.min(820, 360 + distance * 70);
+				targetIndex = next;
+				requestRender();
+			};
+
+			const scheduleAutoAdvance = () => {
+				stopAutoAdvance();
+				if (reducedMotion || maxIndex <= 0) return;
+				if (!isMonitorVisible || !projectsPanelActive) return;
+				autoAdvanceTimer = window.setTimeout(() => {
+					autoAdvanceTimer = 0;
+					setTargetIndex(targetIndex >= maxIndex ? 0 : targetIndex + 1);
+					scheduleAutoAdvance();
+				}, AUTO_ADVANCE_MS);
+			};
+
+			const goToProject = (delta) => {
+				const count = maxIndex + 1;
+				if (count <= 1) return;
+				// Loop: del último al primero y viceversa.
+				setTargetIndex(((targetIndex + delta) % count + count) % count);
+				scheduleAutoAdvance();
+			};
+
+			const syncPanelActive = () => {
+				const active = stage.dataset.activePanel === "projects";
+				if (active === projectsPanelActive) return;
+				projectsPanelActive = active;
+				scheduleAutoAdvance();
+			};
+
+			const onPrevClick = () => goToProject(-1);
+			const onNextClick = () => goToProject(1);
+			prevButton?.addEventListener("click", onPrevClick);
+			nextButton?.addEventListener("click", onNextClick);
+
 			visibilityObserver = new IntersectionObserver(
 				([entry]) => {
 					isMonitorVisible = Boolean(entry?.isIntersecting);
 					if (isMonitorVisible) {
 						requestRender();
+						scheduleAutoAdvance();
 					} else {
 						activeVideoIndicesKey = "";
 						layers.forEach(pauseLayerVideo);
 						stopRender();
+						stopAutoAdvance();
 					}
 				},
 				{ rootMargin: "25% 0px" }
 			);
 			visibilityObserver.observe(stage);
 
-			window.addEventListener("scroll", requestRender, { passive: true });
-			stage.addEventListener("z-space-progress", requestRender);
+			stage.addEventListener("z-space-progress", syncPanelActive);
 
 			function render() {
 				frameId = 0;
 				if (!isMonitorVisible) return;
 
-				const projectsProgress =
-					parseFloat(getComputedStyle(stage).getPropertyValue("--projects-progress")) || 0;
+				const elapsed = performance.now() - transitionStartTime;
+				const rawProgress =
+					transitionDuration > 0 ? clampValue(elapsed / transitionDuration, 0, 1) : 1;
+				const transitionDone = rawProgress >= 1;
+				// ease-out: arranca con respuesta inmediata y se asienta suave al final.
+				const t = reducedMotion || transitionDone ? 1 : 1 - Math.pow(1 - rawProgress, 3);
 
-				const maxIndex = Math.max(0, projectEntries.length - 1);
-				let floatIndex = 0;
-				let activeIndex = 0;
-
-				if (maxIndex > 0) {
-					const scaledProgress = clampValue(projectsProgress * maxIndex, 0, maxIndex);
-					const segmentIndex = Math.min(maxIndex - 1, Math.floor(scaledProgress));
-					const segmentProgress = scaledProgress - segmentIndex;
-					const transitionStart = 0.64;
-					const transitionEnd = 0.84;
-					const transitionProgress = clampValue(
-						(segmentProgress - transitionStart) / (transitionEnd - transitionStart),
-						0,
-						1
-					);
-					const easedTransition =
-						transitionProgress * transitionProgress * (3 - 2 * transitionProgress);
-
-					floatIndex =
-						projectsProgress >= 0.999 ? maxIndex : segmentIndex + easedTransition;
-					activeIndex =
-						projectsProgress >= 0.999
-							? maxIndex
-							: segmentProgress >= 0.82
-								? Math.min(maxIndex, segmentIndex + 1)
-								: segmentIndex;
-				}
-
-				const lowerIndex = Math.min(maxIndex, Math.floor(floatIndex));
-				const upperIndex = Math.min(maxIndex, lowerIndex + 1);
-				const blend = clampValue(floatIndex - lowerIndex, 0, 1);
-				const baseProject = projectEntries[lowerIndex];
-				const overlayProject = projectEntries[upperIndex];
-				const activeVideoIndices = new Set();
+				displayIndex = fromIndex + (targetIndex - fromIndex) * t;
 
 				hoverState.x += (hoverTarget.x - hoverState.x) * 0.12;
 				hoverState.y += (hoverTarget.y - hoverState.y) * 0.12;
 				hoverState.lift += (hoverTarget.lift - hoverState.lift) * 0.14;
 				setShellHover(hoverState.x, hoverState.y, hoverState.lift);
 
-				syncLayerProject(baseLayer, baseProject);
-				syncLayerProject(overlayLayer, overlayProject);
+				// Cross-fade directo origen -> destino. Cada proyecto conserva su layer
+				// (el video no se reinicia) y no hay discontinuidad al cruzar índices.
+				const transitioning = fromIndex !== targetIndex && !transitionDone;
+				const slots = transitioning ? [fromIndex, targetIndex] : [targetIndex];
+				const claimed = new Set();
+				const layerForIndex = new Map();
 
-				baseLayer.element.style.opacity = "1";
-				overlayLayer.element.style.opacity = blend.toFixed(3);
-				baseLayer.element.style.transform = `translate3d(${(blend * -18).toFixed(2)}px, 0, 0) scale(${(1 - blend * 0.02).toFixed(4)})`;
-				overlayLayer.element.style.transform = `translate3d(${((1 - blend) * 18).toFixed(2)}px, 0, 0) scale(${(0.98 + blend * 0.02).toFixed(4)})`;
+				for (const layer of layers) {
+					if (slots.includes(layer.assignedIndex) && !layerForIndex.has(layer.assignedIndex)) {
+						layerForIndex.set(layer.assignedIndex, layer);
+						claimed.add(layer);
+					}
+				}
+				for (const slotIndex of slots) {
+					if (layerForIndex.has(slotIndex)) continue;
+					const freeLayer = layers.find((layer) => !claimed.has(layer));
+					if (!freeLayer) continue;
+					claimed.add(freeLayer);
+					layerForIndex.set(slotIndex, freeLayer);
+					freeLayer.assignedIndex = slotIndex;
+					syncLayerProject(freeLayer, projectEntries[slotIndex]);
+				}
 
-				if (baseProject?.previewVideo) activeVideoIndices.add(lowerIndex);
-				if (overlayProject?.previewVideo && blend > 0.001) activeVideoIndices.add(upperIndex);
+				const toLayer = layerForIndex.get(targetIndex);
+				const fromLayer = transitioning ? layerForIndex.get(fromIndex) : null;
+				const idleLayer = layers.find((layer) => !claimed.has(layer));
+
+				if (fromLayer) {
+					fromLayer.element.style.zIndex = "1";
+					fromLayer.element.style.opacity = "1";
+					fromLayer.element.style.transform = `scale(${(1 - t * 0.04).toFixed(4)})`;
+				}
+
+				toLayer.element.style.zIndex = "2";
+				toLayer.element.style.opacity = fromLayer ? t.toFixed(3) : "1";
+				toLayer.element.style.transform = `scale(${(fromLayer ? 0.96 + t * 0.04 : 1).toFixed(4)})`;
+
+				if (idleLayer) {
+					idleLayer.element.style.zIndex = "0";
+					idleLayer.element.style.opacity = "0";
+				}
+
+				const activeVideoIndices = new Set();
+				if (projectEntries[targetIndex]?.previewVideo) activeVideoIndices.add(targetIndex);
+				if (fromLayer && projectEntries[fromIndex]?.previewVideo) {
+					activeVideoIndices.add(fromIndex);
+				}
 
 				const nextVideoKey = [...activeVideoIndices].sort((a, b) => a - b).join(",");
 				if (nextVideoKey !== activeVideoIndicesKey) {
 					activeVideoIndicesKey = nextVideoKey;
 				}
 
-				syncLayerPlayback(baseLayer, baseProject, isMonitorVisible && activeVideoIndices.has(lowerIndex));
 				syncLayerPlayback(
-					overlayLayer,
-					overlayProject,
-					isMonitorVisible && activeVideoIndices.has(upperIndex) && blend > 0.001
+					toLayer,
+					projectEntries[targetIndex],
+					isMonitorVisible && activeVideoIndices.has(targetIndex)
 				);
+				if (fromLayer) {
+					syncLayerPlayback(
+						fromLayer,
+						projectEntries[fromIndex],
+						isMonitorVisible && activeVideoIndices.has(fromIndex)
+					);
+				}
+				if (idleLayer) pauseLayerVideo(idleLayer);
 
 				copies.forEach((copy, index) => {
-					const offset = index - floatIndex;
+					const offset = index - displayIndex;
 					const absOffset = Math.min(Math.abs(offset), 1.6);
 					const opacity = clampValue(1 - absOffset * 1.45, 0, 1);
 					const translateY = offset * 28;
 
 					copy.style.opacity = opacity.toFixed(3);
 					copy.style.transform = `translate3d(0, ${translateY}px, 0)`;
-					copy.style.pointerEvents = index === activeIndex ? "auto" : "none";
+					copy.style.pointerEvents = index === targetIndex ? "auto" : "none";
 				});
 
 				if (currentLabel) {
-					currentLabel.textContent = String(activeIndex + 1).padStart(2, "0");
+					currentLabel.textContent = String(targetIndex + 1).padStart(2, "0");
 				}
 
-				mediaLink.href = projectEntries[activeIndex]?.url ?? "#";
+				mediaLink.href = projectEntries[targetIndex]?.url ?? "#";
 				mediaLink.setAttribute(
 					"aria-label",
-					`Open project ${projectEntries[activeIndex]?.title ?? "active"}`
+					`Open project ${projectEntries[targetIndex]?.title ?? "active"}`
 				);
-
-				const progressDelta = Math.abs(projectsProgress - lastProgress);
-				lastProgress = projectsProgress;
 
 				if (
 					activeVideoIndicesKey ||
+					!transitionDone ||
 					Math.abs(hoverTarget.x - hoverState.x) >= 0.01 ||
 					Math.abs(hoverTarget.y - hoverState.y) >= 0.01 ||
-					Math.abs(hoverTarget.lift - hoverState.lift) >= 0.01 ||
-					progressDelta >= 0.0008
+					Math.abs(hoverTarget.lift - hoverState.lift) >= 0.01
 				) {
 					requestRender();
 				}
 			}
 
+			syncPanelActive();
 			requestRender();
 
 			window.addEventListener(
 				"pagehide",
 				() => {
 					stopRender();
-					window.removeEventListener("scroll", requestRender);
-					stage.removeEventListener("z-space-progress", requestRender);
+					stopAutoAdvance();
+					stage.removeEventListener("z-space-progress", syncPanelActive);
+					prevButton?.removeEventListener("click", onPrevClick);
+					nextButton?.removeEventListener("click", onNextClick);
 					visibilityObserver?.disconnect();
 					if (hoverEnabled) {
 						shell.removeEventListener("pointermove", onPointerMove);
@@ -472,6 +584,62 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: rgba(240, 236, 228, 0.52);
+	}
+
+	.projects-monitor__controls {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.85rem;
+	}
+
+	.projects-monitor__nav {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.1rem;
+		height: 2.1rem;
+		padding: 0;
+		border: 0;
+		border-radius: 999px;
+		background: rgba(71, 223, 155, 0.09);
+		color: rgba(240, 236, 228, 0.82);
+		cursor: pointer;
+		transition:
+			background 200ms ease,
+			color 200ms ease,
+			transform 160ms ease,
+			opacity 200ms ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.projects-monitor__nav svg {
+		width: 1rem;
+		height: 1rem;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.projects-monitor__nav:hover {
+		background: rgba(71, 223, 155, 0.18);
+		color: #47df9b;
+	}
+
+	.projects-monitor__nav:active {
+		transform: scale(0.9);
+	}
+
+	.projects-monitor__nav:focus-visible {
+		outline: 2px solid rgba(71, 223, 155, 0.6);
+		outline-offset: 2px;
+	}
+
+	.projects-monitor__nav[disabled] {
+		opacity: 0.26;
+		cursor: not-allowed;
+		pointer-events: none;
 	}
 
 	.projects-monitor__frame {
@@ -580,7 +748,6 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 	.projects-monitor__media-layer {
 		overflow: hidden;
 		will-change: transform, opacity;
-		transition: opacity 220ms ease, transform 220ms ease;
 	}
 
 	.projects-monitor__media-layer img,
@@ -677,7 +844,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		position: absolute;
 		left: 50%;
 		right: auto;
-		bottom: 2.9rem;
+		bottom: 1.8rem;
 		width: min(calc(100% - 4.4rem), 72rem);
 		min-height: 8rem;
 		z-index: 4;
@@ -714,18 +881,47 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		transition: opacity 240ms ease;
 	}
 
-	.projects-monitor__copy-role {
-		margin: 0;
-		font-family: "Inter", sans-serif;
-		font-size: 0.86rem;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		color: rgba(240, 236, 228, 0.58);
+	.projects-monitor__tags {
+		display: grid;
+		gap: 0.55rem;
+		justify-items: center;
+		margin-top: 0.25rem;
 	}
 
-	.projects-monitor__copy-role {
-		max-width: min(92%, 44rem);
-		color: rgba(240, 236, 228, 0.58);
+	.projects-monitor__tags-label {
+		font-family: "Inter", sans-serif;
+		font-size: 0.62rem;
+		font-weight: 600;
+		letter-spacing: 0.24em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.4);
+	}
+
+	.projects-monitor__tag-list {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.42rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.projects-monitor__tag {
+		flex: 0 0 auto;
+		padding: 0.34rem 0.82rem;
+		border-radius: 999px;
+		background: rgba(255, 255, 255, 0.07);
+		box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		font-family: "Inter", sans-serif;
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: rgba(240, 236, 228, 0.86);
+		white-space: nowrap;
 	}
 
 	.projects-monitor__copy h3 {
@@ -765,7 +961,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		}
 
 		.projects-monitor__media-link {
-			inset: 1rem 1rem 5.2rem;
+			inset: 1rem 1rem 11rem;
 		}
 
 		.projects-monitor__frame-line--bottom {
@@ -776,7 +972,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		.projects-monitor__copy-stack {
 			left: 50%;
 			right: auto;
-			bottom: 2.95rem;
+			bottom: 1.9rem;
 			width: min(calc(100% - 2.4rem), 60rem);
 		}
 
@@ -808,13 +1004,27 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			font-size: 0.62rem;
 		}
 
+		.projects-monitor__controls {
+			gap: 0.55rem;
+		}
+
+		.projects-monitor__nav {
+			width: 1.85rem;
+			height: 1.85rem;
+		}
+
+		.projects-monitor__nav svg {
+			width: 0.9rem;
+			height: 0.9rem;
+		}
+
 		.projects-monitor__frame {
 			padding: 0.85rem;
 			border-radius: 1.2rem;
 		}
 
 		.projects-monitor__media-link {
-			inset: 0.85rem 0.85rem 4.5rem;
+			inset: 0.85rem 0.85rem 14rem;
 		}
 
 		.projects-monitor__media-shell {
@@ -833,7 +1043,7 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 		.projects-monitor__copy-stack {
 			left: 50%;
 			right: auto;
-			bottom: 2.55rem;
+			bottom: 1.6rem;
 			width: calc(100% - 1.8rem);
 			min-height: 6.2rem;
 		}
@@ -842,9 +1052,18 @@ const totalProjectsLabel = String(projectEntries.length).padStart(2, "0");
 			height: min(46%, 18rem);
 		}
 
-		.projects-monitor__copy-role {
-			font-size: 0.64rem;
-			letter-spacing: 0.12em;
+		.projects-monitor__tags {
+			gap: 0.45rem;
+		}
+
+		.projects-monitor__tags-label {
+			font-size: 0.56rem;
+			letter-spacing: 0.2em;
+		}
+
+		.projects-monitor__tag {
+			padding: 0.28rem 0.66rem;
+			font-size: 0.66rem;
 		}
 
 		.projects-monitor__copy h3 {
