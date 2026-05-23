@@ -1,0 +1,129 @@
+---
+import HeroMouseDistortion from "./HeroMouseDistortion.astro";
+import ScrollSpace3D from "./ScrollSpace3D.astro";
+
+interface Props {
+	title: string;
+	kicker: string;
+	message: string;
+	ctaLabel: string;
+	ctaHref: string;
+}
+
+const { title, kicker, message, ctaLabel, ctaHref } = Astro.props;
+---
+
+<section class="message-hero" data-z-space data-active-panel="hero" aria-labelledby="message-hero-title">
+	<ScrollSpace3D />
+	<HeroMouseDistortion />
+
+	<div class="message-hero__content">
+		<div class="message-hero__headline">
+			<h1 id="message-hero-title">{title}</h1>
+		</div>
+
+		<div class="message-hero__message">
+			<p class="message-hero__kicker">{kicker}</p>
+			<p>{message}</p>
+			<a class="button-outline" href={ctaHref}>{ctaLabel}</a>
+		</div>
+	</div>
+</section>
+
+<style>
+	.message-hero {
+		--hero-opacity: 1;
+		--hero-y: 0vh;
+		--hero-z: 0px;
+		--hero-tilt: 0deg;
+		--hero-scale: 1;
+		--projects-opacity: 0;
+		position: relative;
+		z-index: 1;
+		min-height: 100svh;
+		overflow: hidden;
+		isolation: isolate;
+		perspective: 1200px;
+	}
+
+	.message-hero::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 22%, transparent 74%, rgba(0, 0, 0, 0.76)),
+			radial-gradient(circle at 50% 48%, rgba(71, 223, 155, 0.08), transparent 34rem);
+	}
+
+	.message-hero__content {
+		position: relative;
+		z-index: 5;
+		display: grid;
+		align-content: center;
+		justify-items: center;
+		gap: clamp(1.4rem, 4vh, 2.4rem);
+		min-height: 100svh;
+		width: min(100% - clamp(2rem, 6vw, 5rem), 1280px);
+		margin-inline: auto;
+		padding: clamp(2rem, 5vh, 3.5rem) 0;
+		text-align: center;
+	}
+
+	.message-hero__headline {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+
+	.message-hero h1 {
+		margin: 0;
+		color: var(--text-primary);
+		font-family: "Bebas Neue", sans-serif;
+		font-size: clamp(5.2rem, 14vw, 12rem);
+		font-weight: 500;
+		line-height: 0.78;
+		letter-spacing: 0;
+		text-transform: uppercase;
+		text-shadow:
+			0 0 34px rgba(71, 223, 155, 0.16),
+			0 12px 56px rgba(0, 0, 0, 0.72);
+		user-select: none;
+	}
+
+	.message-hero__message {
+		display: grid;
+		justify-items: center;
+		gap: 1rem;
+		width: min(100%, 34rem);
+	}
+
+	.message-hero__message p {
+		margin: 0;
+		color: #d9e3f6;
+		font-size: 0.98rem;
+		line-height: 1.35;
+	}
+
+	.message-hero__kicker {
+		color: var(--accent) !important;
+		font-size: 0.78rem !important;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+	}
+
+	@media (max-width: 720px) {
+		.message-hero__content {
+			width: min(100% - 2rem, 1280px);
+			gap: 1.25rem;
+		}
+
+		.message-hero h1 {
+			font-size: clamp(4.2rem, 20vw, 6.6rem);
+		}
+	}
+</style>
